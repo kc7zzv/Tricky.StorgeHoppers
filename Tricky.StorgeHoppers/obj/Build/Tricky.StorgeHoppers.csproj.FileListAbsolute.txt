@@ -10,3 +10,4 @@ C:\Users\Tricky\Documents\Visual Studio 2015\Projects\Tricky.StorgeHoppers\Trick
 C:\Users\Tricky\Documents\Visual Studio 2015\Projects\Tricky.StorgeHoppers\Tricky.StorgeHoppers\bin\Build\UnityScript.Lang.dll
 C:\Users\Tricky\Documents\Visual Studio 2015\Projects\Tricky.StorgeHoppers\Tricky.StorgeHoppers\obj\Build\Tricky.StorgeHoppers.csprojResolveAssemblyReference.cache
 C:\Users\Tricky\Documents\Visual Studio 2015\Projects\Tricky.StorgeHoppers\Tricky.StorgeHoppers\obj\Build\plugin_Tricky.ExtraStorgeHoppers.dll
+C:\Users\Tricky\Documents\Visual Studio 2015\Projects\Tricky.StorgeHoppers\Tricky.StorgeHoppers\bin\Build\UnityEngine.UI.dll

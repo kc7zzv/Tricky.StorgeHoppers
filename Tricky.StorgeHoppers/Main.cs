@@ -2,10 +2,13 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.IO;
+using System.Xml;
+using System.Net;
+
 class Variables
 {
     public static string ModName = "Tricky.ExtraStorageHoppers";
-    public static string ModVersion = "5";
+    public static string ModVersion = "7";
     public static bool ModDebug = true;
     public static string FCEModPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\ProjectorGames\\FortressCraft\\Mods\\ModLog\\" + ModName + "\\" + ModVersion + "\\";
     public static string LogFilePath = FCEModPath + "ModLog.log";
@@ -130,6 +133,7 @@ public class ExtraStorageHoppersMain : FortressCraftMod
 
     void Start()
     {
+
         if (!Directory.Exists(Variables.FCEModPath))
         {
             Directory.CreateDirectory(Variables.FCEModPath);
@@ -148,6 +152,8 @@ public class ExtraStorageHoppersMain : FortressCraftMod
         ModRegistrationData modRegistrationData = new ModRegistrationData();
         modRegistrationData.RegisterEntityHandler("Tricky.ExtraStorageHoppers");
         modRegistrationData.RegisterEntityHandler("Tricky.ExtraStorageHoppers_OT");
+        UIManager.NetworkCommandFunctions.Add("ExtraStorageHopperWindow_OT", new UIManager.HandleNetworkCommand(ExtraStorageHopperWindow_OT.HandleNetworkCommand));
+        UIManager.NetworkCommandFunctions.Add("ExtraStorageHopperWindow", new UIManager.HandleNetworkCommand(ExtraStorageHopperWindow.HandleNetworkCommand));
         TerrainDataEntry CubeEntry;
         TerrainDataValueEntry EntryValue;
         TerrainData.GetCubeByKey("Tricky.ExtraStorageHoppers", out CubeEntry, out EntryValue);
