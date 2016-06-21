@@ -153,6 +153,7 @@ public abstract class ExtraStorageHopperWindow
         }
         return false;
     }
+
     public static bool ToggleHoover(Player player, ExtraStorageHoppers hopper)
     {
         hopper.ToggleHoover();
@@ -169,15 +170,6 @@ public abstract class ExtraStorageHopperWindow
         if (!WorldScript.mbIsServer)
         {
             NetworkManager.instance.SendInterfaceCommand("ExtraStorageHopperWindow", "TogglePermissions", null, null, hopper, 0f);
-        }
-        return true;
-    }
-    public static bool ToggleStorageHopperMode(Player player, ExtraStorageHoppers hopper)
-    {
-        hopper.ToggleStorageHopperMode();
-        if (!WorldScript.mbIsServer)
-        {
-            NetworkManager.instance.SendInterfaceCommand("ExtraStorageHopperWindow", "ToggleStorageHopperMode", null, null, hopper, 0f);
         }
         return true;
     }
@@ -199,9 +191,6 @@ public abstract class ExtraStorageHopperWindow
                 break;
             case "StoreItems":
                 ExtraStorageHopperWindow.StoreItems(player, storageHopper, nic.itemContext);
-                break;
-            case "ToggleStorageHopperMode":
-                ExtraStorageHopperWindow.ToggleStorageHopperMode(player, storageHopper);
                 break;
         }
         return new NetworkInterfaceResponse

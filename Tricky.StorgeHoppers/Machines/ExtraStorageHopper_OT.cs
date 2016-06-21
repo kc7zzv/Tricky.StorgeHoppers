@@ -6,7 +6,7 @@ using System.Text;
 using UnityEngine;
 
 
-public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterface
+public class ExtraStorageHoppers_OT : global::MachineEntity, ItemConsumerInterface, StorageMachineInterface, StorageInventoryIterationInterface
 {
     //MY STUFF
     private string ModName = Variables.ModName;
@@ -14,25 +14,20 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
     private string PopUpText;
     //STORAGE HOPPER STUFF
     private Segment[] CheckSegments;
-    public static ushort CRYO_HOPPER = 3;
     private Segment[,,] HooverSegment;
     public ItemBase[] maItemInventory;
     public ushort[] maStorage;
     public bool mbAllowLogistics;
     private bool mbForceHoloUpdate;
     private bool mbForceTextUpdate;
-    private bool mbHooverEmissionOff;
     public bool mbHooverOn;
     private bool mbLinkedToGO;
     private bool mbShowHopper;
-    private bool mbTutorialComplete;
-    private MaterialPropertyBlock mHoloMPB;
     private GameObject mHoloStatus;
     private ParticleSystem mHooverPart;
     private GameObject mHopperPart;
     public string mLastItemAdded;
     private int mnHooverEmissionRate;
-    private int mnHopperLoops;
     private int mnLowFrequencyUpdates;
     private int mnMaxStorage;
     private int mnReadouts;
@@ -41,7 +36,6 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
     public int mnStorageUsed;
     static int[] mRemoveCache = new int[100];
     private int mnUpdates;
-    public static ushort MOTORISED_HOPPER = 4;
     public eHopperPermissions mPermissions = eHopperPermissions.AddAndRemove;
     private eHopperPermissions mPreviousPermissions;
     public float mrCurrentPower;
@@ -49,23 +43,13 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
     public float mrExtractionTime;
     private float mrLogisticsDebounce;
     private float mrMaxLightDistance;
-    private float mrMaxPower;
-    public float mrNormalisedPower;
-    public float mrPowerUsage;
-    public float mrPPS;
     private float mrPrevDistanceToPlayer;
     public float mrReadoutTick;
-    private float mrSleep;
     private float mrSpoilTimer;
     private float mrTimeElapsed;
     private float mrTimeSinceLogistics;
-    private float mrTimeUntilFlash;
     private float mrTimeUntilPlayerDistanceUpdate;
     private TextMesh mTextMesh;
-    public static int PowerPerItem = 5;
-    public static float SAFE_COLD_TEMP = -250f;
-    public const ushort SPOILED_ORGANICS = 0x1004;
-    private GameObject TutorialEffect;
     private Light WorkLight;
 
     //UI STUFF
@@ -73,75 +57,14 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
     public static bool AllowInteracting = true;
     public static bool AllowLooking = true;
     public static bool AllowMovement = true;
-    public GameObject BlockSelectPanel;
-    public static bool CrossHairShown;
-    public static bool CursorShown = false;
-    public const float DEFAULT_MACHINE_POPUP_TIME = 0.75f;
-    public static float DisallowBuildingTimer;
-    public ParticleSystem EnergyAddParticles;
-    public ParticleSystem EnergyDrainParticles;
     public static float ForceNGUIUpdate;
-    public static bool GamePaused;
-    public const float HELD_BUTTON_SYNC_PERIOD = 1f;
-    public static bool HotBarShown = true;
-    public static bool HudShown = true;
-    public static UIManager instance;
-    public static bool mbEditingTextField;
-    public bool mbMenuBlurEnabled;
-    public static bool mbResearchUpdated;
-    public ChatPanelScript mChatPanel;
-    public ConfirmationPanelScript mConfirmationPanel;
-    public GameObject mConversionPanel;
-    public CraftingPanelLabel mCraftingPanel;
-    public DeathPanelScript mDeathPanel;
-    public GameObject mDLC_Panel;
-    public DragAndDropManager mDragAndDropManager;
-    public GameObject mDragBackgroundNet;
-    public UISprite mDragIcon;
-    public static UIInput mEditTextBox;
-    public ExitPanelScript mExitPanel;
-    public GenericMachinePanelScript mGenericMachinePanel;
-    public HandbookPanelScript mHelpPanel;
-    public IntroPanelScript mIntroPanel;
-    public InventoryPanelScript mInventoryPanel;
-    public MultiplayerClientPanelScript mMultiplayerClientPanel;
-    public MultiplayerHostPanelScript mMultiplayerHostPanel;
-    public MultiplayerNonHostPanelScript mMultiplayerNonHostPanel;
-    public ResearchPanelScript mResearchPanel;
-    private float mrEstimatedConversionTime;
     private float mRetakeDebounce;
-    public static float mrHandbookDisplayDelay;
-    private float mrSIPPos;
-    [HideInInspector]
-    public float mrSIPTime;
-    private static float mrWorkshopFader;
-    private float mrWorldConversionPreviousProgress;
-    public ItemSplitPanelScript mSplitPanel;
-    public UICamera mUICamera;
-    private static readonly object mUiRulesLock = new object();
-    public const string NO_SPRITE = "NoIcon";
-    public static bool OverrideAllowInteractingForInventory = false;
-    public static bool PanelsAllowedToUpdate = true;
-    public GameObject SkinsPanel1;
-    public GameObject SkinsPanel3;
-    public static bool SteadyCamActive = false;
-    public GameObject Survival_Info_Panel;
-    public UILabel Survival_Info_Panel_Label;
-    public static int UI_UpdateRate = 1;
-    public const string UNKNOWN_SPRITE = "Unknown";
-    public static bool UsingUIUpdateRate = false;
-    public GameObject Waypoint_Label_Panel;
-    public GameObject Waypoint_Name_Label;
-    public static Vector3 Waypoint_Scale;
-    public GameObject WorkshopBehaviourPanel;
-    public GameObject WorkshopDetailPanel;
-
     // More of my stuff
     private ushort CubeValue;
     private Color mCubeColor;
     public int ItemsDeleted;
+
     private string HopperName;
-    private float Delay = 0f;
 
     //One Type Stuff
     public ushort ExemplarBlockID = 0;
@@ -154,12 +77,9 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
     public ExtraStorageHoppers_OT(Segment segment, long x, long y, long z, ushort cube, byte flags, ushort lValue, bool lbFromDisk) : base(eSegmentEntity.Mod, SpawnableObjectEnum.LogisticsHopper, x, y, z, cube, flags, lValue, Vector3.zero, segment)
     {
         this.HopperName = "New Hopper";
-        this.mrMaxPower = 1000f;
         this.mnMaxStorage = 2001;
         this.mrExtractionTime = 15f;
-        this.mrPowerUsage = 0.1f;
         this.mrSpoilTimer = 30f;
-        this.mnHopperLoops = 10;
         this.mrMaxLightDistance = 32f;
         this.mPreviousPermissions = eHopperPermissions.eNumPermissions;
         base.mbNeedsLowFrequencyUpdate = true;
@@ -171,7 +91,6 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
             this.maStorage[i] = 0;
         }
         this.maItemInventory = new ItemBase[this.mnMaxStorage];
-        this.mrMaxPower = 0f;
         string key = TerrainData.GetCubeKey(cube, lValue);
         if (key == "Tricky.2000SlotHopper")
         {
@@ -200,6 +119,8 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
         this.CountFreeSlots();
         this.CheckSegments = new Segment[6];
     }
+
+    //******************** OT Hopper Stuff ********************
 
     public void SetExemplar(ItemBase lExemplar)
     {
@@ -243,78 +164,19 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
         }
     }
 
-    public ushort GetCubeValue()
+    public bool CheckExemplar(ushort CubeType, ushort CubeValue)
     {
-        return this.CubeValue;
-    }
-
-    public override global::HoloMachineEntity CreateHolobaseEntity(global::Holobase holobase)
-    {
-        global::HolobaseEntityCreationParameters holobaseEntityCreationParameters = new global::HolobaseEntityCreationParameters(this);
-        global::HolobaseVisualisationParameters holobaseVisualisationParameters = holobaseEntityCreationParameters.AddVisualisation(holobase.mPreviewCube);
-        holobaseVisualisationParameters.Color = mCubeColor;
-        return holobase.CreateHolobaseEntity(holobaseEntityCreationParameters);
-    }
-
-    public override void SpawnGameObject()
-    {
-        base.mObjectType = SpawnableObjectEnum.LogisticsHopper;
-        base.SpawnGameObject();
-    }
-
-    private ItemBase GetCurrentHotBarItemOrCubeAsItem(out int lnAvailable)
-    {
-        return this.GetCurrentHotBarItemOrCubeAsItem(out lnAvailable, false);
-    }
-
-    private ItemBase GetCurrentHotBarItemOrCubeAsItem(out int lnAvailable, bool lastStackCount)
-    {
-        if (SurvivalHotBarManager.instance == null)
+        ItemBase lExemplar = new ItemCubeStack(CubeType, CubeValue, 1);
+        if (ItemManager.GetItemName(lExemplar) == this.ExemplarString)
         {
-            UnityEngine.Debug.LogWarning("SurvivalHotBarManager.instance is null??");
-            lnAvailable = 0;
-            return null;
-        }
-        SurvivalHotBarManager.HotBarEntry currentHotBarEntry = SurvivalHotBarManager.instance.GetCurrentHotBarEntry();
-        if (currentHotBarEntry == null)
-        {
-            lnAvailable = 0;
-            return null;
-        }
-        if (lastStackCount && (currentHotBarEntry.lastStackCount > 0))
-        {
-            lnAvailable = currentHotBarEntry.lastStackCount;
+            return true;
         }
         else
         {
-            lnAvailable = currentHotBarEntry.count;
+            return false;
         }
-        if (currentHotBarEntry.state != SurvivalHotBarManager.HotBarEntryState.Empty)
-        {
-            if (currentHotBarEntry.cubeType != 0)
-            {
-                return ItemManager.SpawnCubeStack(currentHotBarEntry.cubeType, currentHotBarEntry.cubeValue, 1);
-            }
-            if (currentHotBarEntry.itemType >= 0)
-            {
-                return ItemManager.SpawnItem(currentHotBarEntry.itemType);
-            }
-            UnityEngine.Debug.LogError("No cube and no item in hotbar?");
-        }
-        return null;
     }
 
-    public int GetCubeType(string key)
-    {
-        ModCubeMap cube = null;
-        ModManager.mModMappings.CubesByKey.TryGetValue(key, out cube);
-        if (cube != null)
-        {
-            return cube.CubeType;
-        }
-        return 0;
-    }
-    
     public override string GetPopupText()
     {
         this.mRetakeDebounce -= Time.deltaTime;
@@ -463,6 +325,490 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
         return PopUpText;
     }
 
+    public override void SpawnGameObject()
+    {
+        mObjectType = SpawnableObjectEnum.LogisticsHopper;
+        base.SpawnGameObject();
+    }
+
+    //******************** EXTRA MODDING INTERFACES **********************
+
+    public override global::HoloMachineEntity CreateHolobaseEntity(global::Holobase holobase)
+    {
+        global::HolobaseEntityCreationParameters holobaseEntityCreationParameters = new global::HolobaseEntityCreationParameters(this);
+        global::HolobaseVisualisationParameters holobaseVisualisationParameters = holobaseEntityCreationParameters.AddVisualisation(holobase.mPreviewCube);
+        holobaseVisualisationParameters.Color = mCubeColor;
+        return holobase.CreateHolobaseEntity(holobaseEntityCreationParameters);
+    }
+
+    public override void LowFrequencyUpdate()
+    {
+        //-------------------------------------------------------------
+        long mnX1 = base.mnX;
+        long mnY1 = base.mnY;
+        long mnZ1 = base.mnZ;
+        int index2 = 0;
+        mnX1 -= 1L;
+        HFChecker(index2, mnX1, mnY1, mnZ1);
+        mnX1 = base.mnX;
+        mnY1 = base.mnY;
+        mnZ1 = base.mnZ;
+        index2 = 1;
+        mnX1 += 1L;
+        HFChecker(index2, mnX1, mnY1, mnZ1);
+        mnX1 = base.mnX;
+        mnY1 = base.mnY;
+        mnZ1 = base.mnZ;
+        index2 = 2;
+        mnY1 -= 1L;
+        HFChecker(index2, mnX1, mnY1, mnZ1);
+        mnX1 = base.mnX;
+        mnY1 = base.mnY;
+        mnZ1 = base.mnZ;
+        index2 = 3;
+        mnY1 += 1L;
+        HFChecker(index2, mnX1, mnY1, mnZ1);
+        mnX1 = base.mnX;
+        mnY1 = base.mnY;
+        mnZ1 = base.mnZ;
+        index2 = 4;
+        mnZ1 -= 1L;
+        HFChecker(index2, mnX1, mnY1, mnZ1);
+        mnX1 = base.mnX;
+        mnY1 = base.mnY;
+        mnZ1 = base.mnZ;
+        index2 = 5;
+        mnZ1 += 1L;
+        HFChecker(index2, mnX1, mnY1, mnZ1);
+        mnX1 = base.mnX;
+        mnY1 = base.mnY;
+        mnZ1 = base.mnZ;
+
+        //-------------------------------------------------------------
+
+
+        if (mrTimeSinceLogistics > 0.0f)
+        {
+            mrTimeSinceLogistics -= LowFrequencyThread.mrPreviousUpdateTimeStep;
+            mbAllowLogistics = false;
+        }
+        else
+        {
+            mbAllowLogistics = true;
+        }
+
+        //This makes a shockingly small amount of difference!
+
+
+
+        mrTimeUntilPlayerDistanceUpdate -= LowFrequencyThread.mrPreviousUpdateTimeStep;
+        if (mrTimeUntilPlayerDistanceUpdate < 0)
+        {
+            mrPrevDistanceToPlayer = mDistanceToPlayer;
+            UpdatePlayerDistanceInfo();
+            mrTimeUntilPlayerDistanceUpdate = mDistanceToPlayer / 30;//1 second at 30 metres, .5 at 15 metres (halved from before)
+            if (mrTimeUntilPlayerDistanceUpdate > 2) mrTimeUntilPlayerDistanceUpdate = 2;
+        }
+
+        mnLowFrequencyUpdates++;
+
+        UpdateHoover();
+
+        UpdatePoweredHopper();//Keep the client sim in step
+
+        if (WorldScript.mbIsServer == true)//this is done by the server
+        {
+            UpdateSpoilage();
+        }
+
+        /*mrCurrentPower += mrIsotopeRate * GameManager.mrPreviousUpdateTimeStep;
+		mrCurrentPower += mrSolarEfficiency * GameManager.mrPreviousUpdateTimeStep * Mathf.Abs(SurvivalWeatherManager.mrSunAngle);
+		if(mrCurrentPower > mrMaxPower) mrCurrentPower = mrMaxPower;*/
+
+
+        mrReadoutTick -= LowFrequencyThread.mrPreviousUpdateTimeStep;
+        //	Debug.Log(mrReadoutTick+"::" + GameManager.mrPreviousUpdateTimeStep.ToString("F2"));
+        if (mrReadoutTick < 0.0f)
+        {
+
+            //In museum mode, we continually empty out slots, just in case;this is hooked up to the 1 second readout tick 
+            //Which is actually the tick where we look for places to hand out stuff. 
+#if MUSEUM
+	//	public ItemBase[] maItemInventory;
+		maItemInventory[0] = null;
+		maStorage[99] = eCubeTypes.NULL;//this allows it to fill up first
+		CountFreeSlots();
+#endif
+
+
+            mrReadoutTick = 1.0f;
+            mnReadouts++;
+
+            //UnityEngine.Debug.Log("SH checking on update "+ mnReadouts + " with " + mnStorageUsed + " storage used");
+            //See if anything adjacent wants some of our resources
+            //	if (mnStorageUsed > 0)//removed as we both give and take resources
+            {
+
+                long checkX = this.mnX;
+                long checkY = this.mnY;
+                long checkZ = this.mnZ;
+
+                int lnWhich = mnReadouts % 6;
+
+                if (lnWhich == 0) checkX--;
+                if (lnWhich == 1) checkX++;
+                if (lnWhich == 2) checkY--;
+                if (lnWhich == 3) checkY++;
+                if (lnWhich == 4) checkZ--;
+                if (lnWhich == 5) checkZ++;
+
+                if (CheckSegments[lnWhich] == null)
+                {
+                    CheckSegments[lnWhich] = AttemptGetSegment(checkX, checkY, checkZ);
+                    return;
+                }
+
+                if (CheckSegments[lnWhich].mbDestroyed || CheckSegments[lnWhich].mbInitialGenerationComplete == false)
+                {
+                    CheckSegments[lnWhich] = null;
+                    return;
+                }
+
+
+                ushort lCube = CheckSegments[lnWhich].GetCube(checkX, checkY, checkZ);
+
+                if (CubeHelper.HasEntity(lCube) == false) return;//don't bother, it's not a machine entity
+
+                // machines that give us resources
+                if (mnStorageFree > 0) CheckSuppliers(CheckSegments[lnWhich], lCube, checkX, checkY, checkZ);
+
+                // machines that take our resources
+                if (mnStorageUsed > 0) CheckConsumers(CheckSegments[lnWhich], lCube, checkX, checkY, checkZ);
+
+                //if  (mnReadouts % mnHopperLoops == 0)
+                {
+                    //both directions
+                    //CheckHoppers(checkX, checkY, checkZ, CheckSegments[lnWhich], lCube);
+                }
+            }
+        }
+
+        //Look for adjacent places to transfer storage
+        //Maybe only do this if we have power? Maybe.
+
+    }
+
+    public override void OnDelete()
+    {
+        if (WorldScript.mbIsServer)
+        {
+            System.Random random = new System.Random();
+            for (int i = 0; i < this.mnMaxStorage; i++)
+            {
+                if (this.maStorage[i] != 0)
+                {
+                    Vector3 velocity = new Vector3(((float)random.NextDouble()) - 0.5f, ((float)random.NextDouble()) - 0.5f, ((float)random.NextDouble()) - 0.5f);
+                    ItemManager.DropNewCubeStack(this.maStorage[i], TerrainData.GetDefaultValue(this.maStorage[i]), 1, base.mnX, base.mnY, base.mnZ, velocity);
+                }
+                if (this.maItemInventory[i] != null)
+                {
+                    Vector3 vector2 = new Vector3(((float)random.NextDouble()) - 0.5f, ((float)random.NextDouble()) - 0.5f, ((float)random.NextDouble()) - 0.5f);
+                    if (this.maItemInventory[i].mType == ItemType.ItemCubeStack)
+                    {
+                        Debug.LogWarning(string.Concat(new object[] { "Dropping ", i, ". Count", (this.maItemInventory[i] as ItemCubeStack).mnAmount }));
+                    }
+                    ItemManager.instance.DropItem(this.maItemInventory[i], base.mnX, base.mnY, base.mnZ, vector2);
+                    this.maItemInventory[i] = null;
+                }
+            }
+        }
+    }
+
+    public override bool ShouldNetworkUpdate()
+    {
+        return true;
+    }
+
+    public override bool ShouldSave()
+    {
+        return true;
+    }
+
+    public override void UnitySuspended()
+    {
+        this.WorkLight = null;
+        this.mHooverPart = null;
+        this.mTextMesh = null;
+        this.mHopperPart = null;
+    }
+
+    public override void UnityUpdate()
+    {
+        //------------------------------------
+        this.mrTimeElapsed += Time.deltaTime;
+        if (!this.mbLinkedToGO)
+        {
+            this.LinkToGO();
+        }
+        else
+        {
+            if (!base.mbWellBehindPlayer && !base.mSegment.mbOutOfView)
+            {
+                if ((base.mDistanceToPlayer <= 8f) && (this.mrPrevDistanceToPlayer > 8f))
+                {
+                    this.mbForceHoloUpdate = true;
+                }
+                if ((base.mDistanceToPlayer > 8f) && (this.mrPrevDistanceToPlayer <= 8f))
+                {
+                    this.mbForceHoloUpdate = true;
+                }
+                if (this.mbForceHoloUpdate)
+                {
+                    this.SetHoloStatus();
+                }
+                if (this.mbForceTextUpdate)
+                {
+                    this.UpdateMeshText();
+                }
+            }
+            this.mnUpdates++;
+            this.UpdateLOD();
+            this.UpdateWorkLight();
+        }
+    }
+
+    //******************** HF CHECKER AND CUSUMER COMMENTED **********************
+
+    private void HFCheckConsumers(Segment checkSegment, ushort lCube, long checkX, long checkY, long checkZ)
+    {
+        //Conveyor
+        //lCube == 513
+        if ((lCube == 513) && WorldScript.mbIsServer)
+        {
+            ConveyorEntity Conveyor = checkSegment.FetchEntity(eSegmentEntity.Conveyor, checkX, checkY, checkZ) as ConveyorEntity;
+            Vector3 lVTT = new Vector3(mnX - Conveyor.mnX, mnY - Conveyor.mnY, mnZ - Conveyor.mnZ);
+            float lrDot = Vector3.Dot(lVTT, Conveyor.mForwards);
+            //Cubes
+            if ((Conveyor != null) && Conveyor.mbReadyToConvey && (lrDot != 1) && (!Conveyor.IsCarryingCargo()) && (Conveyor.mValue != 12))
+            {
+                if (this.mnStorageUsed > 0)
+                {
+                    ushort cube;
+                    ushort value;
+                    this.GetSpecificCube((ExtraStorageHoppers_OT.eRequestType) Conveyor.meRequestType, out cube, out value);
+                    if (cube != 0)
+                    {
+                        Conveyor.AddCube(cube, value, 1f);
+                        this.CountFreeSlots();
+                        this.MarkDirtyDelayed();
+                        return;
+                    }
+
+                }
+            }
+            else if ((Conveyor != null) && Conveyor.mbReadyToConvey && (lrDot != 1) && (!Conveyor.IsCarryingCargo()) && (Conveyor.mValue == 12) && (this.CountHowManyOfType(Conveyor.ExemplarBlockID, Conveyor.ExemplarBlockValue) > 0))
+            {
+
+                if (this.mnStorageUsed > 0)
+                {
+                    if (Conveyor.ExemplarBlockID != 0)
+                    {
+
+                        ItemCubeStack lItem = ItemManager.SpawnCubeStack(Conveyor.ExemplarBlockID, Conveyor.ExemplarBlockValue, 1);
+                        Conveyor.AddItem(this.RemoveSingleSpecificCubeStack(lItem, Conveyor.mbInvertExemplar));
+                        this.CountFreeSlots();
+
+                        this.MarkDirtyDelayed();
+                        return;
+                    }
+
+                }
+            }
+            if ((Conveyor != null) && Conveyor.mbReadyToConvey && (lrDot != 1) && (!Conveyor.IsCarryingCargo()) && (Conveyor.mValue != 12) && (this.mnStorageUsed > 0))
+            {
+                ItemBase item = this.RemoveSingleSpecificItemOrCubeRoundRobin((ExtraStorageHoppers_OT.eRequestType) Conveyor.meRequestType);
+                if (item != null)
+                {
+                    Conveyor.AddItem(item);
+                    this.CountFreeSlots();
+                    this.MarkDirtyDelayed();
+                }
+            }
+            else if ((Conveyor != null) && (Conveyor.mbReadyToConvey) && (lrDot != 1) && (!Conveyor.IsCarryingCargo()) && (Conveyor.mValue == 12) && (this.mnStorageUsed > 0) && (Conveyor.ExemplarItemID != -1) && (this.CountHowManyOfType(Conveyor.ExemplarBlockID, Conveyor.ExemplarBlockValue) > 0))
+            {
+                ItemBase item = this.RemoveSingleSpecificItemByID(Conveyor.ExemplarItemID, Conveyor.mbInvertExemplar);
+                if (item != null)
+                {
+                    Conveyor.AddItem(item);
+                    this.CountFreeSlots();
+                    this.MarkDirtyDelayed();
+                }
+            }
+        }
+    }
+
+    private void HFCheckSuppliers(Segment checkSegment, ushort lCube, long checkX, long checkY, long checkZ)
+    {
+        if ((this.mPermissions != eHopperPermissions.Locked) && (this.mPermissions != eHopperPermissions.RemoveOnly))
+        {
+            //Conveyors
+            if ((lCube == 513) && (this.mnStorageFree > 0) && (this.mPermissions != eHopperPermissions.Locked))
+            {
+                ConveyorEntity Conveyor = checkSegment.FetchEntity(eSegmentEntity.Conveyor, checkX, checkY, checkZ) as ConveyorEntity;
+                Vector3 lVTT = new Vector3(mnX - Conveyor.mnX, mnY - Conveyor.mnY, mnZ - Conveyor.mnZ);
+                float lrDot = Vector3.Dot(lVTT, Conveyor.mForwards);
+                if ((Conveyor != null) && (Conveyor.IsCarryingCargo()) && (lrDot == 1) && (this.mnStorageFree > 0))
+                {
+                    ushort CubeType;
+                    ushort CubeValue;
+                    TerrainData.GetCubeForName(this.ExemplarString, out CubeType, out CubeValue);
+                    if ((Conveyor.mCarriedCube != 0) && (Conveyor.mrCarryTimer <= 0.2f) && (Conveyor.mCarriedCube == CubeType) && (Conveyor.mCarriedValue == CubeValue))
+                    {
+                        this.AddCube(Conveyor.mCarriedCube, Conveyor.mCarriedValue);
+                        Conveyor.RemoveCube();
+                        Conveyor.FinaliseOffloadingCargo();
+                    }
+                    else if ((Conveyor.mCarriedItem != null) && (Conveyor.mrCarryTimer <= 0.2f) && (ItemManager.GetItemName(Conveyor.mCarriedItem) == this.ExemplarString))
+                    {
+                        this.AddItem(Conveyor.mCarriedItem);
+                        Conveyor.RemoveItem();
+                        Conveyor.FinaliseOffloadingCargo();
+                    }
+                    this.CountFreeSlots();
+                    this.MarkDirtyDelayed();
+                    return;
+                }
+            }
+        }
+    }
+
+    public void HFChecker(int index, long x, long y, long z)
+    {
+        try
+        {
+            if (this.CheckSegments[index] == null)
+            {
+                this.CheckSegments[index] = base.AttemptGetSegment(x, y, z);
+            }
+            else if (this.CheckSegments[index].mbDestroyed || !this.CheckSegments[index].mbInitialGenerationComplete)
+            {
+                this.CheckSegments[index] = null;
+            }
+            else
+            {
+                ushort lType = this.CheckSegments[index].GetCube(x, y, z);
+                if (CubeHelper.HasEntity(lType))
+                {
+                    if (this.mnStorageFree > 0)
+                    {
+                        this.HFCheckSuppliers(this.CheckSegments[index], lType, x, y, z);
+                    }
+                    if (this.mnStorageUsed > 0)
+                    {
+                        this.HFCheckConsumers(this.CheckSegments[index], lType, x, y, z);
+                    }
+                }
+            }
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+
+    }
+
+    //******************** PRIVATE TO PUBLIC **********************
+
+    public ushort GetCubeValue()
+    {
+        return this.CubeValue;
+    }
+
+    public int GetCubeType(string key)
+    {
+        ModCubeMap cube = null;
+        ModManager.mModMappings.CubesByKey.TryGetValue(key, out cube);
+        if (cube != null)
+        {
+            return cube.CubeType;
+        }
+        return 0;
+    }
+
+    public eHopperPermissions GetPermissions()
+    {
+        return mPermissions;
+    }
+
+    //******************** HOTBAR **********************
+
+    private ItemBase GetCurrentHotBarItemOrCubeAsItem(out int lnAvailable)
+    {
+        return this.GetCurrentHotBarItemOrCubeAsItem(out lnAvailable, false);
+    }
+
+    private ItemBase GetCurrentHotBarItemOrCubeAsItem(out int lnAvailable, bool lastStackCount)
+    {
+        if (SurvivalHotBarManager.instance == null)
+        {
+            UnityEngine.Debug.LogWarning("SurvivalHotBarManager.instance is null??");
+            lnAvailable = 0;
+            return null;
+        }
+        SurvivalHotBarManager.HotBarEntry currentHotBarEntry = SurvivalHotBarManager.instance.GetCurrentHotBarEntry();
+        if (currentHotBarEntry == null)
+        {
+            lnAvailable = 0;
+            return null;
+        }
+        if (lastStackCount && (currentHotBarEntry.lastStackCount > 0))
+        {
+            lnAvailable = currentHotBarEntry.lastStackCount;
+        }
+        else
+        {
+            lnAvailable = currentHotBarEntry.count;
+        }
+        if (currentHotBarEntry.state != SurvivalHotBarManager.HotBarEntryState.Empty)
+        {
+            if (currentHotBarEntry.cubeType != 0)
+            {
+                return ItemManager.SpawnCubeStack(currentHotBarEntry.cubeType, currentHotBarEntry.cubeValue, 1);
+            }
+            if (currentHotBarEntry.itemType >= 0)
+            {
+                return ItemManager.SpawnItem(currentHotBarEntry.itemType);
+            }
+            UnityEngine.Debug.LogError("No cube and no item in hotbar?");
+        }
+        return null;
+    }
+
+    //******************** GET AND GIVE ITEMS **********************
+
+    void CheckSuppliers(Segment checkSegment, ushort lCube, long checkX, long checkY, long checkZ)
+    {
+        if (mPermissions == eHopperPermissions.Locked || mPermissions == eHopperPermissions.RemoveOnly)
+            return;
+
+        // No point calling any suppliers if we have no space left anyway.
+        if (mnStorageFree <= 0)
+            return;
+
+        var targetEntity = checkSegment.SearchEntity(checkX, checkY, checkZ) as StorageSupplierInterface;
+    }
+
+    void CheckConsumers(Segment checkSegment, ushort lCube, long checkX, long checkY, long checkZ)
+    {
+        if (mPermissions == eHopperPermissions.Locked || mPermissions == eHopperPermissions.AddOnly)
+            return;
+
+        var targetEntity = checkSegment.SearchEntity(checkX, checkY, checkZ) as StorageConsumerInterface;
+    }
+
+    //******************** ADD ITEMS AND CUBES **********************
+
     public void AddCube(ushort lType, ushort lValue)
     {
         if (lType == 0)
@@ -551,6 +897,10 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
 
     public bool AddItem(ItemBase lItemToAdd)
     {
+        if (lItemToAdd.mnItemID != ExemplarItemID)
+        {
+            return false;
+        }
         if (lItemToAdd == null)
         {
             return true;
@@ -607,638 +957,7 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
         return false;
     }
 
-    private bool AttemptToSpoilOrganicItem(int i)
-    {
-        if ((this.maItemInventory[i] != null) && (((this.maItemInventory[i].mnItemID >= 0xfa0) && (this.maItemInventory[i].mnItemID <= 0xfaa)) && ((this.maItemInventory[i].mnItemID % 2) == 1)))
-        {
-            this.mrSpoilTimer = 30f;
-            this.DecrementInventorySlot(i);
-            ItemBase lItemToAdd = ItemManager.SpawnItem(0x1004);
-            this.AddItem(lItemToAdd);
-            return true;
-        }
-        return false;
-    }
-    //HIGH FREQUENCY
-    private int GetBestChoice(ushort lSearchType, out ushort lType)
-    {
-        int num = -1;
-        ushort lBestChoice = 0;
-        ushort num3 = 0;
-        List<CraftData> recipesForSet = CraftData.GetRecipesForSet("Smelter");
-        int num9 = this.ContainsOre(lSearchType, true, recipesForSet, out lBestChoice);
-        if (lSearchType == 0)
-        {
-            if ((lBestChoice != 0) && (num9 > num))
-            {
-                num = num9;
-                num3 = lBestChoice;
-            }
-        }
-        else
-        {
-            Debug.LogWarning("Warning, GetOre called with specific search type, but no code to handle this!");
-        }
-        if (num > 0)
-        {
-            if (num3 == 0)
-            {
-                Debug.LogError("Error, located best type of ore type NULL?");
-            }
-            lType = num3;
-            return num;
-        }
-        lType = 0;
-        return 0;
-    }
-
-    public static int GetBarTypeFromOreType(ushort lType)
-    {
-        List<CraftData> recipesForSet = CraftData.GetRecipesForSet("Smelter");
-        if (recipesForSet != null)
-        {
-            foreach (CraftData data in recipesForSet)
-            {
-                if (data.Costs[0].CubeType == lType)
-                {
-                    return data.CraftableItemType;
-                }
-            }
-            Debug.LogError("Error, unable to locate ItemID for Bar from type " + lType);
-        }
-        else
-        {
-            Debug.LogError("Error, recipes for smelter were not found. Note this can happen in editor when opening the handbook.");
-        }
-        return ItemEntry.GetIDFromName("Copper Bar", true);
-    }
-
-    private void HFCheckConsumers(Segment checkSegment, ushort lCube, long checkX, long checkY, long checkZ)
-    {
-        if ((GetPermissions() != eHopperPermissions.Locked) && (GetPermissions() != eHopperPermissions.AddOnly))
-        {
-            //PowerHub
-            if ((lCube == 0x1f6) && WorldScript.mbIsServer)
-            {
-                CentralPowerHub hub = checkSegment.FetchEntity(eSegmentEntity.CentralPowerHub, checkX, checkY, checkZ) as CentralPowerHub;
-                if ((hub != null) && hub.WantsToConsumeResources())
-                {
-                    for (int j = 0; j < this.mnMaxStorage; j++)
-                    {
-                        if (((this.maItemInventory[j] != null) && (this.maItemInventory[j].mType == ItemType.ItemCubeStack)) && ((this.maItemInventory[j] as ItemCubeStack).mnAmount > 0))
-                        {
-                            ushort mCubeType = (this.maItemInventory[j] as ItemCubeStack).mCubeType;
-                            if (!CubeHelper.IsSmeltableOre(mCubeType) && CubeHelper.IsHighCalorie(mCubeType))
-                            {
-                                hub.AddResourceToConsume(mCubeType);
-                                ItemCubeStack stack1 = this.maItemInventory[j] as ItemCubeStack;
-                                stack1.mnAmount--;
-                                if ((this.maItemInventory[j] as ItemCubeStack).mnAmount <= 0)
-                                {
-                                    this.maItemInventory[j] = null;
-                                }
-                                this.CountFreeSlots();
-                                this.MarkDirtyDelayed();
-                                return;
-                            }
-                        }
-                    }
-                }
-            }
-            //Generator
-            if ((lCube == 0x1fd) && WorldScript.mbIsServer)
-            {
-                PyrothermicGenerator generator = checkSegment.FetchEntity(eSegmentEntity.PyrothermicGenerator, checkX, checkY, checkZ) as PyrothermicGenerator;
-                if ((generator != null) && generator.mbReadyForResource)
-                {
-                    for (int m = 0; m < this.mnMaxStorage; m++)
-                    {
-                        if (((this.maItemInventory[m] != null) && (this.maItemInventory[m].mType == ItemType.ItemCubeStack)) && ((this.maItemInventory[m] as ItemCubeStack).mnAmount > 0))
-                        {
-                            ushort num6 = (this.maItemInventory[m] as ItemCubeStack).mCubeType;
-                            if (!CubeHelper.IsSmeltableOre(num6) && CubeHelper.IsHighCalorie(num6))
-                            {
-                                generator.AddResourceToConsume(num6);
-                                ItemCubeStack stack2 = this.maItemInventory[m] as ItemCubeStack;
-                                stack2.mnAmount--;
-                                if ((this.maItemInventory[m] as ItemCubeStack).mnAmount <= 0)
-                                {
-                                    this.maItemInventory[m] = null;
-                                }
-                                this.CountFreeSlots();
-                                this.MarkDirtyDelayed();
-                                return;
-                            }
-                        }
-                    }
-                }
-            }
-
-            //Smelter
-            if ((lCube == 512) && WorldScript.mbIsServer)
-            {
-                OreSmelter Smelter = checkSegment.FetchEntity(eSegmentEntity.OreSmelter, checkX, checkY, checkZ) as OreSmelter;
-                ushort CubeType;
-                GetBestChoice(0, out CubeType);
-                if (((Smelter.meState == OreSmelter.eState.eWaitingOnMatTrigger) || (Smelter.meState == OreSmelter.eState.eObtainingMats)) && (this.CountHowManyOfOreType(CubeType) >= Smelter.mnOrePerBar) && (CubeType != 0) && (Smelter.mnOreCount == 0))
-                {
-
-                    Smelter.AddCubeTypeOre(CubeType, Smelter.mnOrePerBar);
-                    this.RemoveInventoryCube(CubeType, 4095, Smelter.mnOrePerBar);
-                    this.CountFreeSlots();
-                    this.MarkDirtyDelayed();
-                    return;
-                }
-            }
-            //Matter Mover
-            if ((lCube == 512) && WorldScript.mbIsServer)
-            {
-                MatterMover MMover = checkSegment.FetchEntity(eSegmentEntity.MatterMover, checkX, checkY, checkZ) as MatterMover;
-            }
-        }
-        //Conveyor
-        //lCube == 513
-        if ((lCube == 513) && WorldScript.mbIsServer)
-        {
-            ConveyorEntity Conveyor = checkSegment.FetchEntity(eSegmentEntity.Conveyor, checkX, checkY, checkZ) as ConveyorEntity;
-            Vector3 lVTT = new Vector3(mnX - Conveyor.mnX, mnY - Conveyor.mnY, mnZ - Conveyor.mnZ);
-            float lrDot = Vector3.Dot(lVTT, Conveyor.mForwards);
-            //Cubes
-            if ((Conveyor != null) && Conveyor.mbReadyToConvey && (lrDot != 1) && (!Conveyor.IsCarryingCargo()) && (Conveyor.mValue != 12))
-            {
-                if (this.mnStorageUsed > 0)
-                {
-                    ushort cube;
-                    ushort value;
-                    this.GetSpecificCube((ExtraStorageHoppers_OT.eRequestType) Conveyor.meRequestType, out cube, out value);
-                    if (cube != 0)
-                    {
-                        Conveyor.AddCube(cube, value, 1f);
-                        this.CountFreeSlots();
-                        this.MarkDirtyDelayed();
-                        return;
-                    }
-
-                }
-            }
-            else if ((Conveyor != null) && Conveyor.mbReadyToConvey && (lrDot != 1) && (!Conveyor.IsCarryingCargo()) && (Conveyor.mValue == 12) && (this.CountHowManyOfType(Conveyor.ExemplarBlockID, Conveyor.ExemplarBlockValue) > 0))
-            {
-
-                if (this.mnStorageUsed > 0)
-                {
-                    if (Conveyor.ExemplarBlockID != 0)
-                    {
-
-                        ItemCubeStack lItem = ItemManager.SpawnCubeStack(Conveyor.ExemplarBlockID, Conveyor.ExemplarBlockValue, 1);
-                        Conveyor.AddItem(this.RemoveSingleSpecificCubeStack(lItem, Conveyor.mbInvertExemplar));
-                        this.CountFreeSlots();
-
-                        this.MarkDirtyDelayed();
-                        return;
-                    }
-
-                }
-            }
-            if ((Conveyor != null) && Conveyor.mbReadyToConvey && (lrDot != 1) && (!Conveyor.IsCarryingCargo()) && (Conveyor.mValue != 12) && (this.mnStorageUsed > 0))
-            {
-                ItemBase item = this.RemoveSingleSpecificItemOrCubeRoundRobin((ExtraStorageHoppers_OT.eRequestType) Conveyor.meRequestType);
-                if (item != null)
-                {
-                    Conveyor.AddItem(item);
-                    this.CountFreeSlots();
-                    this.MarkDirtyDelayed();
-                }
-            }
-            else if ((Conveyor != null) && (Conveyor.mbReadyToConvey) && (lrDot != 1) && (!Conveyor.IsCarryingCargo()) && (Conveyor.mValue == 12) && (this.mnStorageUsed > 0) && (Conveyor.ExemplarItemID != -1) && (this.CountHowManyOfType(Conveyor.ExemplarBlockID, Conveyor.ExemplarBlockValue) > 0))
-            {
-                ItemBase item = this.RemoveSingleSpecificItemByID(Conveyor.ExemplarItemID, Conveyor.mbInvertExemplar);
-                if (item != null)
-                {
-                    Conveyor.AddItem(item);
-                    this.CountFreeSlots();
-                    this.MarkDirtyDelayed();
-                }
-            }
-        }
-    }
-    //HIGH FREQUENCY
-    private void HFCheckSuppliers(Segment checkSegment, ushort lCube, long checkX, long checkY, long checkZ)
-    {
-        if ((GetPermissions() != eHopperPermissions.Locked) && (GetPermissions() != eHopperPermissions.RemoveOnly))
-        {
-            //Ore Extractor HF
-            if ((lCube == 0x1f7) && (this.mnStorageFree > 0))
-            {
-                OreExtractor extractor = checkSegment.FetchEntity(eSegmentEntity.OreExtractor, checkX, checkY, checkZ) as OreExtractor;
-                if ((extractor != null) && (extractor.mnStoredOre > 0) && (extractor.mnOreType == this.ExemplarBlockID))
-                {
-                    int mnStorageFree = extractor.mnStoredOre / 4;
-                    if (mnStorageFree < 1)
-                    {
-                        mnStorageFree = 1;
-                    }
-                    if (mnStorageFree > this.mnStorageFree)
-                    {
-                        mnStorageFree = this.mnStorageFree;
-                    }
-                    for (int i = 0; i < mnStorageFree; i++)
-                    {
-                        this.AddCube(extractor.mnOreType, TerrainData.GetDefaultValue(extractor.mnOreType));
-                        extractor.mnStoredOre--;
-                        if (this.mnStorageFree == 0)
-                        {
-                            break;
-                        }
-                    }
-                    this.mrReadoutTick = 0f;
-                    this.mnReadouts--;
-                }
-            }
-            //Ore smelter (basic included)
-            if ((lCube == 512) && (this.mnStorageFree > 0))
-            {
-                OreSmelter Smelter = checkSegment.FetchEntity(eSegmentEntity.OreSmelter, checkX, checkY, checkZ) as OreSmelter;
-                ItemBase FinnishedBar = Smelter.mOutputHopper;
-                if ((Smelter != null) && (Smelter.mOutputHopper != null) && ((Smelter.mOutputHopper as ItemStack).mnAmount > 0) && (Smelter.mOutputHopper.mnItemID == this.ExemplarItemID))
-                {
-                    this.AddItem(FinnishedBar);
-                    Smelter.mOutputHopper = null;
-                    Smelter.MarkDirtyDelayed();
-
-                }
-            }
-        }
-        //Conveyors
-        if ((lCube == 513) && (this.mnStorageFree > 0) && (GetPermissions() != eHopperPermissions.Locked))
-        {
-            ConveyorEntity Conveyor = checkSegment.FetchEntity(eSegmentEntity.Conveyor, checkX, checkY, checkZ) as ConveyorEntity;
-            Vector3 lVTT = new Vector3(mnX - Conveyor.mnX, mnY - Conveyor.mnY, mnZ - Conveyor.mnZ);
-            float lrDot = Vector3.Dot(lVTT, Conveyor.mForwards);
-            if ((Conveyor != null) && (Conveyor.IsCarryingCargo()) && (lrDot == 1) && (this.mnStorageFree > 0))
-            {
-                ushort CubeType;
-                ushort CubeValue;
-                TerrainData.GetCubeForName(this.ExemplarString, out CubeType, out CubeValue);
-                if ((Conveyor.mCarriedCube != 0) && (Conveyor.mrCarryTimer != 0f || Conveyor.mbConveyorBlocked) && (Conveyor.mCarriedCube == CubeType) && (Conveyor.mCarriedValue == CubeValue))
-                {
-                    this.AddCube(Conveyor.mCarriedCube, Conveyor.mCarriedValue);
-                    Conveyor.RemoveCube();
-                    Conveyor.FinaliseOffloadingCargo();
-                }
-                else if ((Conveyor.mCarriedItem != null) && (Conveyor.mrCarryTimer != 0f || Conveyor.mbConveyorBlocked) && (ItemManager.GetItemName(Conveyor.mCarriedItem) == this.ExemplarString))
-                {
-                    this.AddItem(Conveyor.mCarriedItem);
-                    Conveyor.RemoveItem();
-                    Conveyor.FinaliseOffloadingCargo();
-                }
-                this.CountFreeSlots();
-                this.MarkDirtyDelayed();
-                return;
-            }
-        }
-    }
-
-    private void CheckConsumers(Segment checkSegment, ushort lCube, long checkX, long checkY, long checkZ)
-    {
-        if ((GetPermissions() != eHopperPermissions.Locked) && (GetPermissions() != eHopperPermissions.AddOnly))
-        {
-
-        }
-    }
-
-    private void CheckConveyor(long checkX, long checkY, long checkZ, Segment checkSegment, ushort lCube)
-    {
-
-    }
-
-    private void CheckSuppliers(Segment checkSegment, ushort lCube, long checkX, long checkY, long checkZ)
-    {
-        if ((GetPermissions() != eHopperPermissions.Locked) && (GetPermissions() != eHopperPermissions.RemoveOnly))
-        {
-
-            if ((lCube == 0x20a) && (this.mnStorageFree > 0))
-            {
-                RefineryController controller = checkSegment.FetchEntity(eSegmentEntity.RefineryController, checkX, checkY, checkZ) as RefineryController;
-                if ((controller != null) && (controller.mOutputHopper != null))
-                {
-                    ItemBase partialInventory;
-                    if (ItemManager.GetCurrentStackSize(controller.mOutputHopper) > this.mnStorageFree)
-                    {
-                        partialInventory = controller.GetPartialInventory(this.mnStorageFree);
-                    }
-                    else
-                    {
-                        partialInventory = controller.GetWholeInventory();
-                    }
-                    this.AddItem(partialInventory);
-                }
-            }
-            if ((lCube == 520) && (this.mnStorageFree > 0))
-            {
-                ManufacturingPlant plant = checkSegment.FetchEntity(eSegmentEntity.ManufacturingPlant, checkX, checkY, checkZ) as ManufacturingPlant;
-                if (plant != null)
-                {
-                    this.GetManufacturingPlantOutput(plant);
-                }
-            }
-            if ((lCube == 0x209) && (this.mnStorageFree > 0))
-            {
-                ManufacturingPlantModule module = checkSegment.FetchEntity(eSegmentEntity.ManufacturingPlantModule, checkX, checkY, checkZ) as ManufacturingPlantModule;
-                if ((module != null) && (module.mPlant != null))
-                {
-                    this.GetManufacturingPlantOutput(module.mPlant);
-                }
-            }
-        }
-    }
-
-    private void ConfigTutorial()
-    {
-        if (!this.mbTutorialComplete && (WorldScript.meGameMode == eGameMode.eSurvival))
-        {
-            if (SurvivalPlayerScript.meTutorialState == SurvivalPlayerScript.eTutorialState.RemoveCoalFromHopper)
-            {
-                if (this.TutorialEffect == null)
-                {
-                    this.TutorialEffect = (GameObject)UnityEngine.Object.Instantiate(SurvivalSpawns.instance.EmptySH, (base.mWrapper.mGameObjectList[0].gameObject.transform.position + Vector3.up) + Vector3.up, Quaternion.identity);
-                    this.TutorialEffect.SetActive(true);
-                }
-            }
-            else if (this.TutorialEffect != null)
-            {
-                UnityEngine.Object.Destroy(this.TutorialEffect);
-                this.TutorialEffect = null;
-                this.mbTutorialComplete = true;
-            }
-        }
-    }
-
-    public int ContainsOre(ushort lSearchType, bool knownOnly, List<CraftData> recipes, out ushort lBestChoice)
-    {
-        if (lSearchType != 0)
-        {
-            lBestChoice = lSearchType;
-            return this.CountHowManyOfOreType(lSearchType);
-        }
-        int num = 0;
-        lBestChoice = 0;
-        for (int i = 0; i < this.mnMaxStorage; i++)
-        {
-            if ((this.maStorage[i] == 0) || !CubeHelper.IsIngottableOre(this.maStorage[i]))
-            {
-                continue;
-            }
-            bool flag = true;
-            if (recipes != null)
-            {
-                flag = false;
-                foreach (CraftData data in recipes)
-                {
-                    foreach (CraftCost cost in data.Costs)
-                    {
-                        if (cost.CubeType == this.maStorage[i])
-                        {
-                            flag = true;
-                            break;
-                        }
-                    }
-                    if (flag)
-                    {
-                        break;
-                    }
-                }
-            }
-            if (flag)
-            {
-                ushort defaultValue = TerrainData.GetDefaultValue(this.maStorage[i]);
-                if (!knownOnly || WorldScript.mLocalPlayer.mResearch.IsKnown(this.maStorage[i], defaultValue))
-                {
-                    int num4 = this.CountHowManyOfOreType(lSearchType);
-                    if (num4 > num)
-                    {
-                        lBestChoice = this.maStorage[i];
-                        num = num4;
-                    }
-                }
-            }
-        }
-        for (int j = 0; j < this.mnMaxStorage; j++)
-        {
-            if (((this.maItemInventory[j] == null) || (this.maItemInventory[j].mType != ItemType.ItemCubeStack)) || ((this.maItemInventory[j] as ItemCubeStack).mnAmount <= 0))
-            {
-                continue;
-            }
-            ItemCubeStack stack = this.maItemInventory[j] as ItemCubeStack;
-            if (stack == null)
-            {
-                Debug.LogError("Error stack was null in Contains Ore?");
-                continue;
-            }
-            if (WorldScript.mLocalPlayer.mResearch == null)
-            {
-                Debug.LogError("mResearch stack was null in Contains Ore?");
-                continue;
-            }
-            if ((stack.mnItemID != lBestChoice) && CubeHelper.IsIngottableOre(stack.mCubeType))
-            {
-                bool flag2 = true;
-                if (recipes != null)
-                {
-                    flag2 = false;
-                    foreach (CraftData data2 in recipes)
-                    {
-                        foreach (CraftCost cost2 in data2.Costs)
-                        {
-                            if (cost2.CubeType == stack.mCubeType)
-                            {
-                                flag2 = true;
-                                break;
-                            }
-                        }
-                        if (flag2)
-                        {
-                            break;
-                        }
-                    }
-                }
-                if (flag2 && (!knownOnly || WorldScript.mLocalPlayer.mResearch.IsKnown(stack.mCubeType, 0)))
-                {
-                    int num6 = this.CountHowManyOfOreType(stack.mCubeType);
-                    if (num6 > num)
-                    {
-                        lBestChoice = stack.mCubeType;
-                        num = num6;
-                    }
-                }
-            }
-        }
-        return num;
-    }
-
-    private int ReturnFreeSlots()
-    {
-        int mnStorageFree = this.mnStorageFree;
-        //LogValue("***OLD*** mnStorageFree", this.mnStorageFree);
-        this.mnStorageUsed = 0;
-        for (int i = 0; i < this.mnMaxStorage; i++)
-        {
-            if (this.maStorage[i] != 0)
-            {
-                this.mnStorageUsed++;
-            }
-        }
-        for (int j = 0; j < this.mnMaxStorage; j++)
-        {
-            if (this.maItemInventory[j] != null)
-            {
-                ItemBase base2 = this.maItemInventory[j];
-                if (base2.mType == ItemType.ItemStack)
-                {
-                    this.mnStorageUsed += (base2 as ItemStack).mnAmount;
-                }
-                else if (base2.mType == ItemType.ItemCubeStack)
-                {
-                    this.mnStorageUsed += (base2 as ItemCubeStack).mnAmount;
-                }
-                else
-                {
-                    this.mnStorageUsed++;
-                }
-            }
-        }
-        if (this.mnStorageUsed > this.mnMaxStorage)
-        {
-            Debug.LogError(string.Concat(new object[] { "Storage hopper has overflowed! ", this.mnStorageUsed, "/", this.mnMaxStorage, ".", Environment.StackTrace, "Last Item was ", this.mLastItemAdded }));
-        }
-        this.mnStorageFree = this.mnMaxStorage - this.mnStorageUsed;
-        //LogValue("***NEW*** mnStorageFree ", this.mnStorageFree);
-        if (mnStorageFree != this.mnStorageFree)
-        {
-            this.mbForceTextUpdate = true;
-        }
-        return mnStorageFree;
-    }
-
-    private void CountFreeSlots()
-    {
-        int mnStorageFree = this.mnStorageFree;
-        //LogValue("***OLD*** mnStorageFree", this.mnStorageFree);
-        this.mnStorageUsed = 0;
-        for (int i = 0; i < this.mnMaxStorage; i++)
-        {
-            if (this.maStorage[i] != 0)
-            {
-                this.mnStorageUsed++;
-            }
-        }
-        for (int j = 0; j < this.mnMaxStorage; j++)
-        {
-            if (this.maItemInventory[j] != null)
-            {
-                ItemBase base2 = this.maItemInventory[j];
-                if (base2.mType == ItemType.ItemStack)
-                {
-                    this.mnStorageUsed += (base2 as ItemStack).mnAmount;
-                }
-                else if (base2.mType == ItemType.ItemCubeStack)
-                {
-                    this.mnStorageUsed += (base2 as ItemCubeStack).mnAmount;
-                }
-                else
-                {
-                    this.mnStorageUsed++;
-                }
-            }
-        }
-        if (this.mnStorageUsed > this.mnMaxStorage)
-        {
-            Debug.LogError(string.Concat(new object[] { "Storage hopper has overflowed! ", this.mnStorageUsed, "/", this.mnMaxStorage, ".", Environment.StackTrace, "Last Item was ", this.mLastItemAdded }));
-        }
-        this.mnStorageFree = this.mnMaxStorage - this.mnStorageUsed;
-        //LogValue("***NEW*** mnStorageFree ", this.mnStorageFree);
-        if (mnStorageFree != this.mnStorageFree)
-        {
-            this.mbForceTextUpdate = true;
-        }
-    }
-
-    public int CountHowManyOfItem(int itemID)
-    {
-        int num = 0;
-        for (int i = 0; i < this.mnMaxStorage; i++)
-        {
-            ItemBase base2 = this.maItemInventory[i];
-            if ((base2 != null) && (base2.mnItemID == itemID))
-            {
-                ItemStack stack = base2 as ItemStack;
-                if (stack != null)
-                {
-                    num += stack.mnAmount;
-                }
-                else
-                {
-                    num++;
-                }
-            }
-        }
-        return num;
-    }
-
-    public int CountHowManyOfOreType(ushort lType)
-    {
-        if (!CubeHelper.IsOre(lType))
-        {
-            // Debug.LogError("This is only for Ores and other things that we DO NOT CARE ABOUT THE VALUE OF");
-        }
-        int num = 0;
-        for (int i = 0; i < this.mnMaxStorage; i++)
-        {
-            if (this.maStorage[i] == lType)
-            {
-                num++;
-            }
-        }
-        for (int j = 0; j < this.mnMaxStorage; j++)
-        {
-            if ((this.maItemInventory[j] != null) && (this.maItemInventory[j].mType == ItemType.ItemCubeStack))
-            {
-                ItemCubeStack stack = this.maItemInventory[j] as ItemCubeStack;
-                if (stack.mCubeType == lType)
-                {
-                    num += stack.mnAmount;
-                }
-            }
-        }
-        return num;
-    }
-
-    public int CountHowManyOfType(ushort lType, ushort lValue)
-    {
-        int num = 0;
-        for (int i = 0; i < this.mnMaxStorage; i++)
-        {
-            if (this.maStorage[i] == lType)
-            {
-                num++;
-            }
-        }
-        for (int j = 0; j < this.mnMaxStorage; j++)
-        {
-            if ((this.maItemInventory[j] != null) && (this.maItemInventory[j].mType == ItemType.ItemCubeStack))
-            {
-                ItemCubeStack stack = this.maItemInventory[j] as ItemCubeStack;
-                if ((lValue == 0xffff) && (stack.mCubeType == lType))
-                {
-                    num += stack.mnAmount;
-                }
-                if ((stack.mCubeType == lType) && (stack.mCubeValue == lValue))
-                {
-                    num += stack.mnAmount;
-                }
-            }
-        }
-        return num;
-    }
+    //******************** REMOVE ITEMS AND CUBES **********************
 
     private ItemBase DecrementInventorySlot(int i)
     {
@@ -1294,425 +1013,6 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
             throw;
         }
 
-    }
-
-    public bool DeliverPower(float amount)
-    {
-        if (amount > this.GetRemainingPowerCapacity())
-        {
-            amount = this.GetRemainingPowerCapacity();
-        }
-        this.mrCurrentPower += amount;
-        this.MarkDirtyDelayed();
-        return true;
-    }
-
-    public override void DropGameObject()
-    {
-        base.DropGameObject();
-        this.mbLinkedToGO = false;
-        UnityEngine.Object.Destroy(this.TutorialEffect);
-    }
-
-    private void GetManufacturingPlantOutput(ManufacturingPlant plant)
-    {
-        if (plant.mOutputHopper != null)
-        {
-            ItemBase partialInventory;
-            if (ItemManager.GetCurrentStackSize(plant.mOutputHopper) > this.mnStorageFree)
-            {
-                partialInventory = plant.GetPartialInventory(this.mnStorageFree);
-            }
-            else
-            {
-                partialInventory = plant.GetWholeInventory();
-            }
-            this.RequestImmediateNetworkUpdate();
-            plant.RequestImmediateNetworkUpdate();
-            this.AddItem(partialInventory);
-        }
-    }
-
-    public float GetMaximumDeliveryRate()
-    {
-        return 500f;
-    }
-
-    public float GetMaxPower()
-    {
-        return this.mrMaxPower;
-    }
-
-    public float GetRemainingPowerCapacity()
-    {
-        return (this.mrMaxPower - this.mrCurrentPower);
-    }
-
-    public void GetSpecificCube(eRequestType lType, out ushort cubeType, out ushort cubeValue)
-    {
-        if (lType == eRequestType.eNone)
-        {
-            cubeType = 0;
-            cubeValue = 0;
-        }
-        else if (((this.mnStorageUsed == 0) || (lType == eRequestType.eBarsOnly)) || (lType == eRequestType.eAnyCraftedItem))
-        {
-            cubeType = 0;
-            cubeValue = 0;
-        }
-        else
-        {
-            for (int i = 0; i < this.mnMaxStorage; i++)
-            {
-                if ((((this.maStorage[i] != 0) && ((lType != eRequestType.eHighCalorieOnly) || CubeHelper.IsHighCalorie(this.maStorage[i]))) && (((lType != eRequestType.eOreOnly) || CubeHelper.IsSmeltableOre(this.maStorage[i])) && ((lType != eRequestType.eGarbage) || CubeHelper.IsGarbage(this.maStorage[i])))) && ((((lType != eRequestType.eCrystals) || (this.maStorage[i] == 0x98)) && ((lType != eRequestType.eGems) || (this.maStorage[i] == 0xa2))) && (((lType != eRequestType.eBioMass) || (this.maStorage[i] == 0x99)) && ((lType != eRequestType.eSmeltable) || CubeHelper.IsIngottableOre(this.maStorage[i])))))
-                {
-                    ushort type = this.maStorage[i];
-                    this.RemoveInventoryCube(this.maStorage[i]);
-                    if (this.mnStorageUsed == 0)
-                    {
-                        this.mLastItemAdded = "Empty";
-                    }
-                    cubeType = type;
-                    cubeValue = TerrainData.GetDefaultValue(type);
-                    return;
-                }
-            }
-            for (int j = 0; j < this.mnMaxStorage; j++)
-            {
-                if ((this.maItemInventory[j] != null) && (this.maItemInventory[j].mType == ItemType.ItemCubeStack))
-                {
-                    ItemCubeStack stack = this.maItemInventory[j] as ItemCubeStack;
-                    if (((((lType != eRequestType.eHighCalorieOnly) || CubeHelper.IsHighCalorie(stack.mCubeType)) && ((lType != eRequestType.eOreOnly) || CubeHelper.IsSmeltableOre(stack.mCubeType))) && (((lType != eRequestType.eGarbage) || CubeHelper.IsGarbage(stack.mCubeType)) && ((lType != eRequestType.eCrystals) || (stack.mCubeType == 0x98)))) && ((((lType != eRequestType.eGems) || (stack.mCubeType == 0xa2)) && ((lType != eRequestType.eBioMass) || (stack.mCubeType == 0x99))) && ((lType != eRequestType.eSmeltable) || CubeHelper.IsIngottableOre(stack.mCubeType))))
-                    {
-                        this.RemoveInventoryCube(stack.mCubeType, stack.mCubeValue, 1);
-                        if (this.mnStorageUsed == 0)
-                        {
-                            this.mLastItemAdded = "Empty";
-                        }
-                        cubeType = stack.mCubeType;
-                        cubeValue = stack.mCubeValue;
-                        return;
-                    }
-                }
-            }
-            cubeType = 0;
-            cubeValue = 0;
-        }
-    }
-
-    public void GetSpecificCubeRoundRobin(eRequestType lType, out ushort cubeType, out ushort cubeValue)
-    {
-        if (lType == eRequestType.eNone)
-        {
-            cubeType = 0;
-            cubeValue = 0;
-        }
-        else if (((this.mnStorageUsed == 0) || (lType == eRequestType.eBarsOnly)) || (lType == eRequestType.eAnyCraftedItem))
-        {
-            cubeType = 0;
-            cubeValue = 0;
-        }
-        else
-        {
-            for (int i = 0; i < this.mnMaxStorage; i++)
-            {
-                this.mnRoundRobinOffset++;
-                this.mnRoundRobinOffset = this.mnRoundRobinOffset % this.mnMaxStorage;
-                int mnRoundRobinOffset = this.mnRoundRobinOffset;
-                if (this.maStorage[mnRoundRobinOffset] != 0)
-                {
-                    if ((((lType != eRequestType.eOrganic) && ((lType != eRequestType.eHighCalorieOnly) || CubeHelper.IsHighCalorie(this.maStorage[mnRoundRobinOffset]))) && (((lType != eRequestType.eOreOnly) || CubeHelper.IsSmeltableOre(this.maStorage[mnRoundRobinOffset])) && ((lType != eRequestType.eGarbage) || CubeHelper.IsGarbage(this.maStorage[mnRoundRobinOffset])))) && ((((lType != eRequestType.eCrystals) || (this.maStorage[mnRoundRobinOffset] == 0x98)) && ((lType != eRequestType.eGems) || (this.maStorage[mnRoundRobinOffset] == 0xa2))) && (((lType != eRequestType.eBioMass) || (this.maStorage[mnRoundRobinOffset] == 0x99)) && ((lType != eRequestType.eSmeltable) || CubeHelper.IsIngottableOre(this.maStorage[mnRoundRobinOffset])))))
-                    {
-                        ushort type = this.maStorage[mnRoundRobinOffset];
-                        this.RemoveInventoryCube(this.maStorage[mnRoundRobinOffset]);
-                        if (this.mnStorageUsed == 0)
-                        {
-                            this.mLastItemAdded = "Empty";
-                        }
-                        cubeType = type;
-                        cubeValue = TerrainData.GetDefaultValue(type);
-                        return;
-                    }
-                }
-                else if ((this.maItemInventory[mnRoundRobinOffset] != null) && (this.maItemInventory[mnRoundRobinOffset].mType == ItemType.ItemCubeStack))
-                {
-                    ItemCubeStack stack = this.maItemInventory[mnRoundRobinOffset] as ItemCubeStack;
-                    if ((((lType != eRequestType.eOrganic) && ((lType != eRequestType.eHighCalorieOnly) || CubeHelper.IsHighCalorie(stack.mCubeType))) && (((lType != eRequestType.eOreOnly) || CubeHelper.IsSmeltableOre(stack.mCubeType)) && ((lType != eRequestType.eGarbage) || CubeHelper.IsGarbage(stack.mCubeType)))) && ((((lType != eRequestType.eCrystals) || (stack.mCubeType == 0x98)) && ((lType != eRequestType.eGems) || (stack.mCubeType == 0xa2))) && (((lType != eRequestType.eBioMass) || (stack.mCubeType == 0x99)) && ((lType != eRequestType.eSmeltable) || CubeHelper.IsIngottableOre(stack.mCubeType)))))
-                    {
-                        this.RemoveInventoryCube(stack.mCubeType, stack.mCubeValue, 1);
-                        if (this.mnStorageUsed == 0)
-                        {
-                            this.mLastItemAdded = "Empty";
-                        }
-                        cubeType = stack.mCubeType;
-                        cubeValue = stack.mCubeValue;
-                        return;
-                    }
-                }
-            }
-            cubeType = 0;
-            cubeValue = 0;
-        }
-    }
-
-    public override int GetVersion()
-    {
-
-        return 1;
-    }
-
-    public void IterateContents(IterateItem itemFunc)
-    {
-        if (itemFunc != null)
-        {
-            for (int i = 0; i < this.mnMaxStorage; i++)
-            {
-                if ((this.maItemInventory[i] != null) && !itemFunc(this.maItemInventory[i]))
-                {
-                    return;
-                }
-            }
-        }
-    }
-
-    private void LinkToGO()
-    {
-        if ((base.mWrapper != null) && base.mWrapper.mbHasGameObject)
-        {
-            if (base.mWrapper.mGameObjectList == null)
-            {
-                Debug.LogError("Ore Extractor missing game object #0?");
-            }
-            if (base.mWrapper.mGameObjectList[0].gameObject == null)
-            {
-                Debug.LogError("Ore Extractor missing game object #0 (GO)?");
-            }
-            this.WorkLight = base.mWrapper.mGameObjectList[0].transform.Search("HooverGraphic").GetComponent<Light>();
-            if (this.WorkLight == null)
-            {
-                Debug.LogError("Storage Hopper has missing light?");
-            }
-            this.mHooverPart = base.mWrapper.mGameObjectList[0].transform.Search("HooverGraphic").GetComponent<ParticleSystem>();
-            this.mHooverPart.emissionRate = 0f;
-            this.mTextMesh = base.mWrapper.mGameObjectList[0].gameObject.transform.Search("Storage Text").GetComponent<TextMesh>();
-            this.mHopperPart = base.mWrapper.mGameObjectList[0].transform.Find("Hopper").gameObject;
-            this.mHoloStatus = this.mHopperPart.transform.Find("Holo_Status").gameObject;
-            this.mHoloStatus.SetActive(false);
-            this.mPreviousPermissions = eHopperPermissions.eNumPermissions;
-            this.SetHoloStatus();
-            this.mbForceTextUpdate = true;
-            this.mbLinkedToGO = true;
-            // COLOR STORAGE HOPPER
-            MeshRenderer lRenderer = this.mHopperPart.GetComponent<MeshRenderer>();
-            MeshRenderer Render2 = this.mHopperPart.GetComponent<MeshRenderer>();
-            Render2.material.SetColor("_Color", this.mCubeColor);
-
-        }
-    }
-
-    public void LogisticsOperation()
-    {
-        this.mrTimeSinceLogistics = this.mrLogisticsDebounce;
-        if (this.mrTimeSinceLogistics > 0f)
-        {
-            this.mbAllowLogistics = false;
-        }
-    }
-
-    public void HFChecker(int index, long x, long y, long z)
-    {
-        try
-        {
-            if (this.CheckSegments[index] == null)
-            {
-                this.CheckSegments[index] = base.AttemptGetSegment(x, y, z);
-            }
-            else if (this.CheckSegments[index].mbDestroyed || !this.CheckSegments[index].mbInitialGenerationComplete)
-            {
-                this.CheckSegments[index] = null;
-            }
-            else
-            {
-                ushort lType = this.CheckSegments[index].GetCube(x, y, z);
-                if (CubeHelper.HasEntity(lType))
-                {
-                    if (this.mnStorageFree > 0)
-                    {
-                        this.HFCheckSuppliers(this.CheckSegments[index], lType, x, y, z);
-                    }
-                    if (this.mnStorageUsed > 0)
-                    {
-                        this.HFCheckConsumers(this.CheckSegments[index], lType, x, y, z);
-                    }
-                }
-            }
-        }
-        catch (Exception)
-        {
-
-            throw;
-        }
-
-    }
-    //LowFrequencyUpdate
-    public override void LowFrequencyUpdate()
-    {
-        //-------------------------------------------------------------
-        long mnX1 = base.mnX;
-        long mnY1 = base.mnY;
-        long mnZ1 = base.mnZ;
-        int index2 = 0;
-        mnX1 -= 1L;
-        HFChecker(index2, mnX1, mnY1, mnZ1);
-        mnX1 = base.mnX;
-        mnY1 = base.mnY;
-        mnZ1 = base.mnZ;
-        index2 = 1;
-        mnX1 += 1L;
-        HFChecker(index2, mnX1, mnY1, mnZ1);
-        mnX1 = base.mnX;
-        mnY1 = base.mnY;
-        mnZ1 = base.mnZ;
-        index2 = 2;
-        mnY1 -= 1L;
-        HFChecker(index2, mnX1, mnY1, mnZ1);
-        mnX1 = base.mnX;
-        mnY1 = base.mnY;
-        mnZ1 = base.mnZ;
-        index2 = 3;
-        mnY1 += 1L;
-        HFChecker(index2, mnX1, mnY1, mnZ1);
-        mnX1 = base.mnX;
-        mnY1 = base.mnY;
-        mnZ1 = base.mnZ;
-        index2 = 4;
-        mnZ1 -= 1L;
-        HFChecker(index2, mnX1, mnY1, mnZ1);
-        mnX1 = base.mnX;
-        mnY1 = base.mnY;
-        mnZ1 = base.mnZ;
-        index2 = 5;
-        mnZ1 += 1L;
-        HFChecker(index2, mnX1, mnY1, mnZ1);
-        mnX1 = base.mnX;
-        mnY1 = base.mnY;
-        mnZ1 = base.mnZ;
-
-        //-------------------------------------------------------------
-        if (this.mrTimeSinceLogistics > 0f)
-        {
-            this.mrTimeSinceLogistics -= LowFrequencyThread.mrPreviousUpdateTimeStep;
-            this.mbAllowLogistics = false;
-        }
-        else
-        {
-            this.mbAllowLogistics = true;
-        }
-
-        this.mrTimeUntilPlayerDistanceUpdate -= LowFrequencyThread.mrPreviousUpdateTimeStep;
-        if (this.mrTimeUntilPlayerDistanceUpdate < 0f)
-        {
-            this.mrPrevDistanceToPlayer = base.mDistanceToPlayer;
-            this.UpdatePlayerDistanceInfo();
-            this.mrTimeUntilPlayerDistanceUpdate = base.mDistanceToPlayer / 30f;
-            if (this.mrTimeUntilPlayerDistanceUpdate > 2f)
-            {
-                this.mrTimeUntilPlayerDistanceUpdate = 2f;
-            }
-        }
-        this.mnLowFrequencyUpdates++;
-        //this.UpdateHoover();
-        this.UpdatePoweredHopper();
-        if (WorldScript.mbIsServer)
-        {
-            this.UpdateSpoilage();
-        }
-        this.mrNormalisedPower = this.mrCurrentPower / this.mrMaxPower;
-        this.mrReadoutTick -= LowFrequencyThread.mrPreviousUpdateTimeStep;
-        if (this.mrReadoutTick < 0f)
-        {
-            this.mrReadoutTick = 1f;
-            this.mnReadouts++;
-            long mnX = base.mnX;
-            long mnY = base.mnY;
-            long mnZ = base.mnZ;
-            int index = this.mnReadouts % 6;
-            switch (index)
-            {
-                case 0:
-                    mnX -= 1L;
-                    break;
-
-                case 1:
-                    mnX += 1L;
-                    break;
-
-                case 2:
-                    mnY -= 1L;
-                    break;
-
-                case 3:
-                    mnY += 1L;
-                    break;
-
-                case 4:
-                    mnZ -= 1L;
-                    break;
-
-                case 5:
-                    mnZ += 1L;
-                    break;
-            }
-            if (this.CheckSegments[index] == null)
-            {
-                this.CheckSegments[index] = base.AttemptGetSegment(mnX, mnY, mnZ);
-            }
-            else if (this.CheckSegments[index].mbDestroyed || !this.CheckSegments[index].mbInitialGenerationComplete)
-            {
-                this.CheckSegments[index] = null;
-            }
-            else
-            {
-                ushort lType = this.CheckSegments[index].GetCube(mnX, mnY, mnZ);
-                if (CubeHelper.HasEntity(lType))
-                {
-                    if (this.mnStorageFree > 0)
-                    {
-                        this.CheckSuppliers(this.CheckSegments[index], lType, mnX, mnY, mnZ);
-                    }
-                    if (this.mnStorageUsed > 0)
-                    {
-                        this.CheckConsumers(this.CheckSegments[index], lType, mnX, mnY, mnZ);
-                    }
-                }
-            }
-        }
-    }
-
-    public override void OnDelete()
-    {
-        if (WorldScript.mbIsServer)
-        {
-            System.Random random = new System.Random();
-            for (int i = 0; i < this.mnMaxStorage; i++)
-            {
-                if (this.maStorage[i] != 0)
-                {
-                    Vector3 velocity = new Vector3(((float)random.NextDouble()) - 0.5f, ((float)random.NextDouble()) - 0.5f, ((float)random.NextDouble()) - 0.5f);
-                    ItemManager.DropNewCubeStack(this.maStorage[i], TerrainData.GetDefaultValue(this.maStorage[i]), 1, base.mnX, base.mnY, base.mnZ, velocity);
-                }
-                if (this.maItemInventory[i] != null)
-                {
-                    Vector3 vector2 = new Vector3(((float)random.NextDouble()) - 0.5f, ((float)random.NextDouble()) - 0.5f, ((float)random.NextDouble()) - 0.5f);
-                    if (this.maItemInventory[i].mType == ItemType.ItemCubeStack)
-                    {
-                        Debug.LogWarning(string.Concat(new object[] { "Dropping ", i, ". Count", (this.maItemInventory[i] as ItemCubeStack).mnAmount }));
-                    }
-                    ItemManager.instance.DropItem(this.maItemInventory[i], base.mnX, base.mnY, base.mnZ, vector2);
-                    this.maItemInventory[i] = null;
-                }
-            }
-        }
     }
 
     public ItemBase RemoveFirstInventoryItem()
@@ -2265,85 +1565,775 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
         return base2;
     }
 
-    private void SetHoloStatus()
+    //******************** HANDLE ORGANIC STUFF **********************
+
+    public static int GetBarTypeFromOreType(ushort lType)
     {
-        if (this.CubeValue != 2)
+        List<CraftData> recipesForSet = CraftData.GetRecipesForSet("Smelter");
+        if (recipesForSet != null)
         {
-            if (this.mHoloStatus != null)
+            foreach (CraftData data in recipesForSet)
             {
-                if (this.mbForceHoloUpdate)
+                if (data.Costs[0].CubeType == lType)
                 {
-                    this.mPreviousPermissions = eHopperPermissions.eNumPermissions;
+                    return data.CraftableItemType;
                 }
-                this.mbForceHoloUpdate = false;
-                if ((base.mDistanceToPlayer > 8f) || base.mbWellBehindPlayer)
+            }
+            Debug.LogError("Error, unable to locate ItemID for Bar from type " + lType);
+        }
+        else
+        {
+            Debug.LogError("Error, recipes for smelter were not found. Note this can happen in editor when opening the handbook.");
+        }
+        return ItemEntry.GetIDFromName("Copper Bar", true);
+    }
+
+    //******************** CHECK HOPPER INVENTORY **********************
+
+    public int ContainsOre(ushort lSearchType, bool knownOnly, List<CraftData> recipes, out ushort lBestChoice)
+    {
+        if (lSearchType != 0)
+        {
+            lBestChoice = lSearchType;
+            return this.CountHowManyOfOreType(lSearchType);
+        }
+        int num = 0;
+        lBestChoice = 0;
+        for (int i = 0; i < this.mnMaxStorage; i++)
+        {
+            if ((this.maStorage[i] == 0) || !CubeHelper.IsIngottableOre(this.maStorage[i]))
+            {
+                continue;
+            }
+            bool flag = true;
+            if (recipes != null)
+            {
+                flag = false;
+                foreach (CraftData data in recipes)
                 {
-                    if (this.mHoloStatus.activeSelf)
+                    foreach (CraftCost cost in data.Costs)
                     {
-                        this.mHoloStatus.SetActive(false);
+                        if (cost.CubeType == this.maStorage[i])
+                        {
+                            flag = true;
+                            break;
+                        }
                     }
+                    if (flag)
+                    {
+                        break;
+                    }
+                }
+            }
+            if (flag)
+            {
+                ushort defaultValue = TerrainData.GetDefaultValue(this.maStorage[i]);
+                if (!knownOnly || WorldScript.mLocalPlayer.mResearch.IsKnown(this.maStorage[i], defaultValue))
+                {
+                    int num4 = this.CountHowManyOfOreType(lSearchType);
+                    if (num4 > num)
+                    {
+                        lBestChoice = this.maStorage[i];
+                        num = num4;
+                    }
+                }
+            }
+        }
+        for (int j = 0; j < this.mnMaxStorage; j++)
+        {
+            if (((this.maItemInventory[j] == null) || (this.maItemInventory[j].mType != ItemType.ItemCubeStack)) || ((this.maItemInventory[j] as ItemCubeStack).mnAmount <= 0))
+            {
+                continue;
+            }
+            ItemCubeStack stack = this.maItemInventory[j] as ItemCubeStack;
+            if (stack == null)
+            {
+                Debug.LogError("Error stack was null in Contains Ore?");
+                continue;
+            }
+            if (WorldScript.mLocalPlayer.mResearch == null)
+            {
+                Debug.LogError("mResearch stack was null in Contains Ore?");
+                continue;
+            }
+            if ((stack.mnItemID != lBestChoice) && CubeHelper.IsIngottableOre(stack.mCubeType))
+            {
+                bool flag2 = true;
+                if (recipes != null)
+                {
+                    flag2 = false;
+                    foreach (CraftData data2 in recipes)
+                    {
+                        foreach (CraftCost cost2 in data2.Costs)
+                        {
+                            if (cost2.CubeType == stack.mCubeType)
+                            {
+                                flag2 = true;
+                                break;
+                            }
+                        }
+                        if (flag2)
+                        {
+                            break;
+                        }
+                    }
+                }
+                if (flag2 && (!knownOnly || WorldScript.mLocalPlayer.mResearch.IsKnown(stack.mCubeType, 0)))
+                {
+                    int num6 = this.CountHowManyOfOreType(stack.mCubeType);
+                    if (num6 > num)
+                    {
+                        lBestChoice = stack.mCubeType;
+                        num = num6;
+                    }
+                }
+            }
+        }
+        return num;
+    }
+
+    private int ReturnFreeSlots()
+    {
+        int mnStorageFree = this.mnStorageFree;
+        //LogValue("***OLD*** mnStorageFree", this.mnStorageFree);
+        this.mnStorageUsed = 0;
+        for (int i = 0; i < this.mnMaxStorage; i++)
+        {
+            if (this.maStorage[i] != 0)
+            {
+                this.mnStorageUsed++;
+            }
+        }
+        for (int j = 0; j < this.mnMaxStorage; j++)
+        {
+            if (this.maItemInventory[j] != null)
+            {
+                ItemBase base2 = this.maItemInventory[j];
+                if (base2.mType == ItemType.ItemStack)
+                {
+                    this.mnStorageUsed += (base2 as ItemStack).mnAmount;
+                }
+                else if (base2.mType == ItemType.ItemCubeStack)
+                {
+                    this.mnStorageUsed += (base2 as ItemCubeStack).mnAmount;
                 }
                 else
                 {
-                    if (!this.mHoloStatus.activeSelf)
+                    this.mnStorageUsed++;
+                }
+            }
+        }
+        if (this.mnStorageUsed > this.mnMaxStorage)
+        {
+            Debug.LogError(string.Concat(new object[] { "Storage hopper has overflowed! ", this.mnStorageUsed, "/", this.mnMaxStorage, ".", Environment.StackTrace, "Last Item was ", this.mLastItemAdded }));
+        }
+        this.mnStorageFree = this.mnMaxStorage - this.mnStorageUsed;
+        //LogValue("***NEW*** mnStorageFree ", this.mnStorageFree);
+        if (mnStorageFree != this.mnStorageFree)
+        {
+            this.mbForceTextUpdate = true;
+        }
+        return mnStorageFree;
+    }
+
+    private void CountFreeSlots()
+    {
+        int mnStorageFree = this.mnStorageFree;
+        //LogValue("***OLD*** mnStorageFree", this.mnStorageFree);
+        this.mnStorageUsed = 0;
+        for (int i = 0; i < this.mnMaxStorage; i++)
+        {
+            if (this.maStorage[i] != 0)
+            {
+                this.mnStorageUsed++;
+            }
+        }
+        for (int j = 0; j < this.mnMaxStorage; j++)
+        {
+            if (this.maItemInventory[j] != null)
+            {
+                ItemBase base2 = this.maItemInventory[j];
+                if (base2.mType == ItemType.ItemStack)
+                {
+                    this.mnStorageUsed += (base2 as ItemStack).mnAmount;
+                }
+                else if (base2.mType == ItemType.ItemCubeStack)
+                {
+                    this.mnStorageUsed += (base2 as ItemCubeStack).mnAmount;
+                }
+                else
+                {
+                    this.mnStorageUsed++;
+                }
+            }
+        }
+        if (this.mnStorageUsed > this.mnMaxStorage)
+        {
+            Debug.LogError(string.Concat(new object[] { "Storage hopper has overflowed! ", this.mnStorageUsed, "/", this.mnMaxStorage, ".", Environment.StackTrace, "Last Item was ", this.mLastItemAdded }));
+        }
+        this.mnStorageFree = this.mnMaxStorage - this.mnStorageUsed;
+        //LogValue("***NEW*** mnStorageFree ", this.mnStorageFree);
+        if (mnStorageFree != this.mnStorageFree)
+        {
+            this.mbForceTextUpdate = true;
+        }
+    }
+
+    public int CountHowManyOfItem(int itemID)
+    {
+        int num = 0;
+        for (int i = 0; i < this.mnMaxStorage; i++)
+        {
+            ItemBase base2 = this.maItemInventory[i];
+            if ((base2 != null) && (base2.mnItemID == itemID))
+            {
+                ItemStack stack = base2 as ItemStack;
+                if (stack != null)
+                {
+                    num += stack.mnAmount;
+                }
+                else
+                {
+                    num++;
+                }
+            }
+        }
+        return num;
+    }
+
+    public int CountHowManyOfOreType(ushort lType)
+    {
+        if (!CubeHelper.IsOre(lType))
+        {
+            // Debug.LogError("This is only for Ores and other things that we DO NOT CARE ABOUT THE VALUE OF");
+        }
+        int num = 0;
+        for (int i = 0; i < this.mnMaxStorage; i++)
+        {
+            if (this.maStorage[i] == lType)
+            {
+                num++;
+            }
+        }
+        for (int j = 0; j < this.mnMaxStorage; j++)
+        {
+            if ((this.maItemInventory[j] != null) && (this.maItemInventory[j].mType == ItemType.ItemCubeStack))
+            {
+                ItemCubeStack stack = this.maItemInventory[j] as ItemCubeStack;
+                if (stack.mCubeType == lType)
+                {
+                    num += stack.mnAmount;
+                }
+            }
+        }
+        return num;
+    }
+
+    public int CountHowManyOfType(ushort lType, ushort lValue)
+    {
+        int num = 0;
+        for (int i = 0; i < this.mnMaxStorage; i++)
+        {
+            if (this.maStorage[i] == lType)
+            {
+                num++;
+            }
+        }
+        for (int j = 0; j < this.mnMaxStorage; j++)
+        {
+            if ((this.maItemInventory[j] != null) && (this.maItemInventory[j].mType == ItemType.ItemCubeStack))
+            {
+                ItemCubeStack stack = this.maItemInventory[j] as ItemCubeStack;
+                if ((lValue == 0xffff) && (stack.mCubeType == lType))
+                {
+                    num += stack.mnAmount;
+                }
+                if ((stack.mCubeType == lType) && (stack.mCubeValue == lValue))
+                {
+                    num += stack.mnAmount;
+                }
+            }
+        }
+        return num;
+    }
+
+    private bool AttemptToSpoilOrganicItem(int i)
+    {
+        if ((this.maItemInventory[i] != null) && (((this.maItemInventory[i].mnItemID >= 0xfa0) && (this.maItemInventory[i].mnItemID <= 0xfaa)) && ((this.maItemInventory[i].mnItemID % 2) == 1)))
+        {
+            this.mrSpoilTimer = 30f;
+            this.DecrementInventorySlot(i);
+            ItemBase lItemToAdd = ItemManager.SpawnItem(0x1004);
+            this.AddItem(lItemToAdd);
+            return true;
+        }
+        return false;
+    }
+
+    //******************** GET ITEM/CUBE INFORMATION **********************
+
+    public void GetSpecificCube(eRequestType lType, out ushort cubeType, out ushort cubeValue)
+    {
+        if (lType == eRequestType.eNone)
+        {
+            cubeType = 0;
+            cubeValue = 0;
+        }
+        else if (((this.mnStorageUsed == 0) || (lType == eRequestType.eBarsOnly)) || (lType == eRequestType.eAnyCraftedItem))
+        {
+            cubeType = 0;
+            cubeValue = 0;
+        }
+        else
+        {
+            for (int i = 0; i < this.mnMaxStorage; i++)
+            {
+                if ((((this.maStorage[i] != 0) && ((lType != eRequestType.eHighCalorieOnly) || CubeHelper.IsHighCalorie(this.maStorage[i]))) && (((lType != eRequestType.eOreOnly) || CubeHelper.IsSmeltableOre(this.maStorage[i])) && ((lType != eRequestType.eGarbage) || CubeHelper.IsGarbage(this.maStorage[i])))) && ((((lType != eRequestType.eCrystals) || (this.maStorage[i] == 0x98)) && ((lType != eRequestType.eGems) || (this.maStorage[i] == 0xa2))) && (((lType != eRequestType.eBioMass) || (this.maStorage[i] == 0x99)) && ((lType != eRequestType.eSmeltable) || CubeHelper.IsIngottableOre(this.maStorage[i])))))
+                {
+                    ushort type = this.maStorage[i];
+                    this.RemoveInventoryCube(this.maStorage[i]);
+                    if (this.mnStorageUsed == 0)
                     {
-                        this.mPreviousPermissions = eHopperPermissions.eNumPermissions;
-                        this.mHoloStatus.SetActive(true);
+                        this.mLastItemAdded = "Empty";
                     }
-                    if (this.mPreviousPermissions != this.mPermissions)
+                    cubeType = type;
+                    cubeValue = TerrainData.GetDefaultValue(type);
+                    return;
+                }
+            }
+            for (int j = 0; j < this.mnMaxStorage; j++)
+            {
+                if ((this.maItemInventory[j] != null) && (this.maItemInventory[j].mType == ItemType.ItemCubeStack))
+                {
+                    ItemCubeStack stack = this.maItemInventory[j] as ItemCubeStack;
+                    if (((((lType != eRequestType.eHighCalorieOnly) || CubeHelper.IsHighCalorie(stack.mCubeType)) && ((lType != eRequestType.eOreOnly) || CubeHelper.IsSmeltableOre(stack.mCubeType))) && (((lType != eRequestType.eGarbage) || CubeHelper.IsGarbage(stack.mCubeType)) && ((lType != eRequestType.eCrystals) || (stack.mCubeType == 0x98)))) && ((((lType != eRequestType.eGems) || (stack.mCubeType == 0xa2)) && ((lType != eRequestType.eBioMass) || (stack.mCubeType == 0x99))) && ((lType != eRequestType.eSmeltable) || CubeHelper.IsIngottableOre(stack.mCubeType))))
                     {
-                        this.mPreviousPermissions = this.mPermissions;
-                        if (this.mPermissions == eHopperPermissions.AddAndRemove)
+                        this.RemoveInventoryCube(stack.mCubeType, stack.mCubeValue, 1);
+                        if (this.mnStorageUsed == 0)
                         {
-                            this.mHoloStatus.GetComponent<Renderer>().material.mainTextureOffset = new Vector2(0f, 0.5f);
+                            this.mLastItemAdded = "Empty";
                         }
-                        if (this.mPermissions == eHopperPermissions.RemoveOnly)
-                        {
-                            this.mHoloStatus.GetComponent<Renderer>().material.mainTextureOffset = new Vector2(0f, 0f);
-                        }
-                        if (this.mPermissions == eHopperPermissions.Locked)
-                        {
-                            this.mHoloStatus.GetComponent<Renderer>().material.mainTextureOffset = new Vector2(0.5f, 0f);
-                        }
-                        if (this.mPermissions == eHopperPermissions.AddOnly)
-                        {
-                            this.mHoloStatus.GetComponent<Renderer>().material.mainTextureOffset = new Vector2(0.5f, 0.5f);
-                        }
+                        cubeType = stack.mCubeType;
+                        cubeValue = stack.mCubeValue;
+                        return;
                     }
+                }
+            }
+            cubeType = 0;
+            cubeValue = 0;
+        }
+    }
+
+    public void GetSpecificCubeRoundRobin(eRequestType lType, out ushort cubeType, out ushort cubeValue)
+    {
+        if (lType == eRequestType.eNone)
+        {
+            cubeType = 0;
+            cubeValue = 0;
+        }
+        else if (((this.mnStorageUsed == 0) || (lType == eRequestType.eBarsOnly)) || (lType == eRequestType.eAnyCraftedItem))
+        {
+            cubeType = 0;
+            cubeValue = 0;
+        }
+        else
+        {
+            for (int i = 0; i < this.mnMaxStorage; i++)
+            {
+                this.mnRoundRobinOffset++;
+                this.mnRoundRobinOffset = this.mnRoundRobinOffset % this.mnMaxStorage;
+                int mnRoundRobinOffset = this.mnRoundRobinOffset;
+                if (this.maStorage[mnRoundRobinOffset] != 0)
+                {
+                    if ((((lType != eRequestType.eOrganic) && ((lType != eRequestType.eHighCalorieOnly) || CubeHelper.IsHighCalorie(this.maStorage[mnRoundRobinOffset]))) && (((lType != eRequestType.eOreOnly) || CubeHelper.IsSmeltableOre(this.maStorage[mnRoundRobinOffset])) && ((lType != eRequestType.eGarbage) || CubeHelper.IsGarbage(this.maStorage[mnRoundRobinOffset])))) && ((((lType != eRequestType.eCrystals) || (this.maStorage[mnRoundRobinOffset] == 0x98)) && ((lType != eRequestType.eGems) || (this.maStorage[mnRoundRobinOffset] == 0xa2))) && (((lType != eRequestType.eBioMass) || (this.maStorage[mnRoundRobinOffset] == 0x99)) && ((lType != eRequestType.eSmeltable) || CubeHelper.IsIngottableOre(this.maStorage[mnRoundRobinOffset])))))
+                    {
+                        ushort type = this.maStorage[mnRoundRobinOffset];
+                        this.RemoveInventoryCube(this.maStorage[mnRoundRobinOffset]);
+                        if (this.mnStorageUsed == 0)
+                        {
+                            this.mLastItemAdded = "Empty";
+                        }
+                        cubeType = type;
+                        cubeValue = TerrainData.GetDefaultValue(type);
+                        return;
+                    }
+                }
+                else if ((this.maItemInventory[mnRoundRobinOffset] != null) && (this.maItemInventory[mnRoundRobinOffset].mType == ItemType.ItemCubeStack))
+                {
+                    ItemCubeStack stack = this.maItemInventory[mnRoundRobinOffset] as ItemCubeStack;
+                    if ((((lType != eRequestType.eOrganic) && ((lType != eRequestType.eHighCalorieOnly) || CubeHelper.IsHighCalorie(stack.mCubeType))) && (((lType != eRequestType.eOreOnly) || CubeHelper.IsSmeltableOre(stack.mCubeType)) && ((lType != eRequestType.eGarbage) || CubeHelper.IsGarbage(stack.mCubeType)))) && ((((lType != eRequestType.eCrystals) || (stack.mCubeType == 0x98)) && ((lType != eRequestType.eGems) || (stack.mCubeType == 0xa2))) && (((lType != eRequestType.eBioMass) || (stack.mCubeType == 0x99)) && ((lType != eRequestType.eSmeltable) || CubeHelper.IsIngottableOre(stack.mCubeType)))))
+                    {
+                        this.RemoveInventoryCube(stack.mCubeType, stack.mCubeValue, 1);
+                        if (this.mnStorageUsed == 0)
+                        {
+                            this.mLastItemAdded = "Empty";
+                        }
+                        cubeType = stack.mCubeType;
+                        cubeValue = stack.mCubeValue;
+                        return;
+                    }
+                }
+            }
+            cubeType = 0;
+            cubeValue = 0;
+        }
+    }
+
+    //******************** HANDLE OUTPUT **********************
+
+    private void GetManufacturingPlantOutput(ManufacturingPlant plant)
+    {
+        if (plant.mOutputHopper != null)
+        {
+            ItemBase partialInventory;
+            if (ItemManager.GetCurrentStackSize(plant.mOutputHopper) > this.mnStorageFree)
+            {
+                partialInventory = plant.GetPartialInventory(this.mnStorageFree);
+            }
+            else
+            {
+                partialInventory = plant.GetWholeInventory();
+            }
+            this.RequestImmediateNetworkUpdate();
+            plant.RequestImmediateNetworkUpdate();
+            this.AddItem(partialInventory);
+        }
+    }
+
+    //******************** RETURN CONSTANTS **********************
+
+    public float GetMaximumDeliveryRate()
+    {
+        return 500f;
+    }
+
+    public override int GetVersion()
+    {
+
+        return 1;
+    }
+
+    //******************** ITEM INTERACTIONS **********************
+
+    public void IterateContents(IterateItem itemFunc)
+    {
+        if (itemFunc != null)
+        {
+            for (int i = 0; i < this.mnMaxStorage; i++)
+            {
+                if ((this.maItemInventory[i] != null) && !itemFunc(this.maItemInventory[i]))
+                {
+                    return;
                 }
             }
         }
     }
 
-    public override bool ShouldNetworkUpdate()
+    public void IterateContents(global::IterateItem itemFunc, object state)
     {
-        return true;
+        if (itemFunc == null) return;
+
+
+        for (int i = 0; i < mnMaxStorage; i++)
+        {
+            ItemBase item = maItemInventory[i];
+            if (item == null) continue;
+            if (!itemFunc(maItemInventory[i], state))
+                return;
+        }
+
     }
 
-    public override bool ShouldSave()
+    public delegate bool IterateItem(ItemBase item);
+
+
+    //******************** HANDLE MODELS  ********************
+
+    void UpdateLOD()
     {
-        return true;
+
+        bool lbShowHopper = true;
+        if (mDistanceToPlayer > 64) lbShowHopper = false;
+        if (mbWellBehindPlayer) lbShowHopper = false;
+        if (Mathf.Abs(mVectorToPlayer.y) > 32.0f) lbShowHopper = false;
+        if (mSegment.mbOutOfView) lbShowHopper = false;
+
+
+        //Smartly do this work only when the vis has changed
+        if (lbShowHopper != mbShowHopper)
+        {
+            mbShowHopper = lbShowHopper;
+            mbForceHoloUpdate = true;//Ensure the vis is correct for this
+            if (lbShowHopper == true)
+            {
+                if (mHopperPart.activeSelf == false)
+                {
+                    mHopperPart.SetActive(true);
+
+                    mHopperPart.GetComponent<Renderer>().enabled = true;
+                }
+            }
+            else
+            {
+                if (mHopperPart.activeSelf == true)
+                {
+                    mHopperPart.SetActive(false);
+                }
+                mHopperPart.GetComponent<Renderer>().enabled = false;//hopefully this overrides the LOD stuff - I wish everything used LODs and culled at the same point :/
+                                                                     //But if we did that, it's every frame on the main thread and fuck unity in it's stupid face
+            }
+
+        }
+
+
+        UpdateHooverEmission();
+
+        //disable text at unreadable distances
+        if (mDistanceToPlayer > 24.0f || mbWellBehindPlayer || mDistanceToPlayer > CamDetail.SegmentDrawDistance - 8)
+        {
+            if (mTextMesh.GetComponent<Renderer>().enabled == true)
+            {
+                mbForceHoloUpdate = true;
+                mTextMesh.GetComponent<Renderer>().enabled = false;
+            }
+        }
+        else
+        {
+            if (mTextMesh.GetComponent<Renderer>().enabled == false)
+            {
+                mbForceHoloUpdate = true;
+                mTextMesh.GetComponent<Renderer>().enabled = true;
+            }
+        }
+
+
+
     }
+
+    void UpdateHooverEmission()
+    {
+
+        bool lbAllowHoover = true;
+
+        if (mDistanceToPlayer > 16.0f || mbWellBehindPlayer) lbAllowHoover = false;
+        if (mDistanceToPlayer > (CamDetail.SegmentDrawDistance) || Mathf.Abs(mVectorToPlayer.y) > 24.0f || mbWellBehindPlayer) lbAllowHoover = false;
+
+        if (lbAllowHoover == false)
+        {
+            if (mnHooverEmissionRate > 0)
+            {
+                mnHooverEmissionRate--;
+                mHooverPart.emissionRate = mnHooverEmissionRate;
+            }
+
+            //mHooverPart.gameObject.SetActive(false);
+        }
+        else
+        {
+            if (mbHooverOn)
+            {
+
+                if (mnHooverEmissionRate <= 10)
+                {
+                    mnHooverEmissionRate++;
+                    mHooverPart.emissionRate = mnHooverEmissionRate;
+                }
+            }
+            else
+            {
+                if (mnHooverEmissionRate > 0)
+                {
+                    mnHooverEmissionRate--;
+                    mHooverPart.emissionRate = mnHooverEmissionRate;
+                }
+
+            }
+            //mHooverPart.gameObject.SetActive(true);
+        }
+    }
+
+    void UpdateWorkLight()
+    {
+
+        bool lbLightShouldBeEnabled = false;
+        if (mnStorageUsed == 0) lbLightShouldBeEnabled = true;
+        if (mnStorageFree == 0) lbLightShouldBeEnabled = true;
+
+        if (mbWellBehindPlayer) lbLightShouldBeEnabled = false;
+
+        mrMaxLightDistance += (CamDetail.FPS - mrMaxLightDistance) * Time.deltaTime * 0.1f;//very slow lerp based on framerate
+        if (mrMaxLightDistance < 2) mrMaxLightDistance = 2;
+        if (mrMaxLightDistance > 64) mrMaxLightDistance = 64;
+
+        if (mDistanceToPlayer > mrMaxLightDistance) lbLightShouldBeEnabled = false;//I wonder if this could be a very smoothed number that follows the framerate...?
+
+
+        if (lbLightShouldBeEnabled)
+        {
+            if (WorkLight.enabled == false)
+            {
+                WorkLight.enabled = true;
+                WorkLight.range = 0.05f;//fade up, don't just appear.(this is the minimum not to get immediately turned off)
+            }
+            //Not a Cryo hopper, simply show full/empty as green/red
+            if (mnStorageUsed == 0)
+            {
+                WorkLight.color = Color.Lerp(WorkLight.color, Color.green, Time.deltaTime);//1 second to smoothly lerp? Maybe?
+                WorkLight.range += 0.1f;
+            }
+            else
+            {
+                if (mnStorageFree == 0)
+                {
+                    WorkLight.color = Color.Lerp(WorkLight.color, Color.red, Time.deltaTime);//1 second to smoothly lerp? Maybe?	
+                    WorkLight.range += 0.1f;
+
+                }
+                else
+                {
+                    //this should probably actually be lbLightShouldBeEnabled = false
+                    WorkLight.color = Color.Lerp(WorkLight.color, Color.cyan, Time.deltaTime);//1 second to smoothly lerp? Maybe?
+                    WorkLight.range -= 0.1f;//That's ok, you're working nicely, don't need to indicate
+                }
+            }
+
+
+            if (WorkLight.range > 1.0f) WorkLight.range = 1.0f;//this is automatically reduced to 95% a bit below here, so it's technically oscillating a bit
+        }
+        else
+        {
+            //Do not disable light directly; light will fade rapidly and disable itself (Light does not need to be disabled, for whatever reason)
+        }
+
+        if (WorkLight.enabled)
+        {
+            if (WorkLight.range < 0.15f)
+            {
+                WorkLight.enabled = false;//maybe as much as .2? (turning this off sooner gives performance back sooner)
+            }
+            else
+            {
+                WorkLight.range *= 0.95f;
+            }
+        }
+    }
+
+    void SetHoloStatus()
+    {
+        if (mHoloStatus == null) return;//I fail
+
+        if (mbForceHoloUpdate) mPreviousPermissions = eHopperPermissions.eNumPermissions;
+        mbForceHoloUpdate = false;
+
+        if (mDistanceToPlayer > 8 || mbWellBehindPlayer)
+        {
+            if (mHoloStatus.activeSelf) mHoloStatus.SetActive(false);
+            return;
+        }
+        if (mHoloStatus.activeSelf == false)
+        {
+            mPreviousPermissions = eHopperPermissions.eNumPermissions;
+            mHoloStatus.SetActive(true);
+        }
+
+        if (mPreviousPermissions != mPermissions)
+        {
+            mPreviousPermissions = mPermissions;//only do this if the permissions have changed
+                                                //cache this if necessary
+            if (mPermissions == eHopperPermissions.AddAndRemove) mHoloStatus.GetComponent<Renderer>().material.mainTextureOffset = new Vector2(0.0f, 0.5f);
+            if (mPermissions == eHopperPermissions.RemoveOnly) mHoloStatus.GetComponent<Renderer>().material.mainTextureOffset = new Vector2(0.0f, 0.0f);
+            if (mPermissions == eHopperPermissions.Locked) mHoloStatus.GetComponent<Renderer>().material.mainTextureOffset = new Vector2(0.5f, 0.0f);
+            if (mPermissions == eHopperPermissions.AddOnly) mHoloStatus.GetComponent<Renderer>().material.mainTextureOffset = new Vector2(0.5f, 0.5f);
+        }
+    }
+
+    void UpdateMeshText()
+    {
+        if (mTextMesh.GetComponent<Renderer>().enabled && mDistanceToPlayer < 12)//we can see text up to 24m right now, but there's little point, it's not readable
+        {
+            string lText = mPermissions.ToString() + "\n";
+
+            if (mnStorageFree == 0) lText += "Storage full\n";
+            else
+                if (mnStorageUsed == 0) lText += "Storage Empty\n";
+            else
+                lText += mnStorageFree.ToString() + " free slots\n";//
+
+            if (mrTimeSinceLogistics > 0.0f)
+                lText += "Processing...";
+            else
+                lText += "[" + mLastItemAdded + "]";
+
+            mTextMesh.text = lText;
+
+            mbForceTextUpdate = false;
+        }
+    }
+
+    void LinkToGO()
+    {
+        if (mWrapper == null || !mWrapper.mbHasGameObject)
+        {
+            return;
+        }
+        else
+        {
+            if (mWrapper.mGameObjectList == null) Debug.LogError("Ore Extractor missing game object #0?");
+            if (mWrapper.mGameObjectList[0].gameObject == null) Debug.LogError("Ore Extractor missing game object #0 (GO)?");
+            //WorkLight = mWrapper.mGameObjectList[0].gameObject.GetComponentInChildren<Light>();
+            WorkLight = mWrapper.mGameObjectList[0].transform.Search("HooverGraphic").GetComponent<Light>();
+            if (WorkLight == null) Debug.LogError("Storage Hopper has missing light?");
+            //if (QualitySettings.GetQualityLevel() >=3) WorkLight.shadows = LightShadows.Hard;//Object casts shadows and we're inside the object. Sad times.
+
+            mHooverPart = mWrapper.mGameObjectList[0].transform.Search("HooverGraphic").GetComponent<ParticleSystem>();
+            mHooverPart.emissionRate = 0;
+            //mHooverPart= mWrapper.mGameObjectList[0].gameObject.GetComponentInChildren<ParticleSystem>();
+
+            mTextMesh = mWrapper.mGameObjectList[0].gameObject.transform.Search("Storage Text").GetComponent<TextMesh>();//this is like HUNDREDS of times faster than the below call..
+                                                                                                                         //.GetComponentInChildren<TextMesh>();s
+            mHopperPart = mWrapper.mGameObjectList[0].transform.Find("Hopper").gameObject;
+
+            mHoloStatus = mHopperPart.transform.Find("Holo_Status").gameObject;
+
+            mHoloStatus.SetActive(false);
+            mPreviousPermissions = eHopperPermissions.eNumPermissions;//force an update
+            SetHoloStatus();
+
+            mbForceTextUpdate = true;
+
+            mbLinkedToGO = true;
+
+            //mHoloMPB = new MaterialPropertyBlock();
+            // COLOR STORAGE HOPPER
+
+            MeshRenderer lRenderer = this.mHopperPart.GetComponent<MeshRenderer>();
+            MeshRenderer Render2 = this.mHopperPart.GetComponent<MeshRenderer>();
+            Render2.material.SetColor("_Color", this.mCubeColor);
+        }
+    }
+
+    public override void DropGameObject()
+    {
+        base.DropGameObject();
+        mbLinkedToGO = false;
+    }
+
+    //******************** Hopper Modes ********************
 
     public void ToggleHoover()
     {
-        this.mbHooverOn = false;
+        this.mbHooverOn = !this.mbHooverOn;
         this.MarkDirtyDelayed();
         this.mbForceTextUpdate = true;
         this.RequestImmediateNetworkUpdate();
-        
     }
 
     public void TogglePermissions()
     {
-        this.mPermissions += 1;
-        if (this.mPermissions == eHopperPermissions.eNumPermissions)
+        mPermissions += 1;
+        if (mPermissions == eHopperPermissions.eNumPermissions)
         {
-            this.mPermissions = eHopperPermissions.AddAndRemove;
-        }
-        if (this.mPermissions > eHopperPermissions.eNumPermissions)
-        {
-            this.mPermissions = eHopperPermissions.RemoveOnly;
+            mPermissions = eHopperPermissions.AddAndRemove;
         }
 
         this.MarkDirtyDelayed();
@@ -2351,52 +2341,10 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
         this.mbForceHoloUpdate = true;
         this.RequestImmediateNetworkUpdate();
 
-        FloatingCombatTextManager.instance.QueueText(base.mnX, base.mnY + 1L, base.mnZ, 1f, this.mPermissions.ToString(), Color.green, 1.5f).mrStartRadiusRand = 0.25f;
+        FloatingCombatTextManager.instance.QueueText(base.mnX, base.mnY + 1L, base.mnZ, 1f, GetPermissions().ToString(), Color.green, 1.5f).mrStartRadiusRand = 0.25f;
     }
 
-    public override void UnitySuspended()
-    {
-        this.WorkLight = null;
-        this.mHooverPart = null;
-        this.mTextMesh = null;
-        this.mHopperPart = null;
-    }
-
-    public override void UnityUpdate()
-    {
-        //------------------------------------
-        this.mrTimeElapsed += Time.deltaTime;
-        if (!this.mbLinkedToGO)
-        {
-            this.LinkToGO();
-        }
-        else
-        {
-            this.ConfigTutorial();
-            if (!base.mbWellBehindPlayer && !base.mSegment.mbOutOfView)
-            {
-                if ((base.mDistanceToPlayer <= 8f) && (this.mrPrevDistanceToPlayer > 8f))
-                {
-                    this.mbForceHoloUpdate = true;
-                }
-                if ((base.mDistanceToPlayer > 8f) && (this.mrPrevDistanceToPlayer <= 8f))
-                {
-                    this.mbForceHoloUpdate = true;
-                }
-                if (this.mbForceHoloUpdate)
-                {
-                    this.SetHoloStatus();
-                }
-                if (this.mbForceTextUpdate)
-                {
-                    this.UpdateMeshText();
-                }
-            }
-            this.mnUpdates++;
-            this.UpdateLOD();
-            this.UpdateWorkLight();
-        }
-    }
+    //******************** UPDATE ********************
 
     private void UpdateHoover()
     {
@@ -2440,90 +2388,6 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
         }
     }
 
-    private void UpdateLOD()
-    {
-        bool flag = true;
-        if (base.mDistanceToPlayer > 64f)
-        {
-            flag = false;
-        }
-        if (base.mbWellBehindPlayer)
-        {
-            flag = false;
-        }
-        if (Mathf.Abs(this.mVectorToPlayer.y) > 32f)
-        {
-            flag = false;
-        }
-        if (base.mSegment.mbOutOfView)
-        {
-            flag = false;
-        }
-        if (flag != this.mbShowHopper)
-        {
-            this.mbShowHopper = flag;
-            this.mbForceHoloUpdate = true;
-            if (flag)
-            {
-                if (!this.mHopperPart.activeSelf)
-                {
-                    this.mHopperPart.SetActive(true);
-                    this.mHopperPart.GetComponent<Renderer>().enabled = true;
-                }
-            }
-            else
-            {
-                if (this.mHopperPart.activeSelf)
-                {
-                    this.mHopperPart.SetActive(false);
-                }
-                this.mHopperPart.GetComponent<Renderer>().enabled = false;
-            }
-        }
-        if (((base.mDistanceToPlayer > 24f) || base.mbWellBehindPlayer) || (base.mDistanceToPlayer > (CamDetail.SegmentDrawDistance - 8f)))
-        {
-            if (this.mTextMesh.GetComponent<Renderer>().enabled)
-            {
-                this.mbForceHoloUpdate = true;
-                this.mTextMesh.GetComponent<Renderer>().enabled = false;
-            }
-        }
-        else if (!this.mTextMesh.GetComponent<Renderer>().enabled)
-        {
-            this.mbForceHoloUpdate = true;
-            this.mTextMesh.GetComponent<Renderer>().enabled = true;
-        }
-    }
-
-    private void UpdateMeshText()
-    {
-        if (this.mTextMesh.GetComponent<Renderer>().enabled && (base.mDistanceToPlayer < 12f))
-        {
-            string str = this.mPermissions.ToString() + "\n";
-            if (this.mnStorageFree == 0)
-            {
-                str = str + "Storage full\n";
-            }
-            else if (this.mnStorageUsed == 0)
-            {
-                str = str + "Storage Empty\n";
-            }
-            else
-            {
-                str = str + this.mnStorageFree.ToString() + " free slots\n";
-            }
-            if (this.mrTimeSinceLogistics > 0f)
-            {
-                str = str + "Processing...";
-            }
-            else
-            {
-                str = str + "[" + this.mLastItemAdded + "]";
-            }
-            this.mTextMesh.text = str;
-            this.mbForceTextUpdate = false;
-        }
-    }
 
     private void UpdatePoweredHopper()
     {
@@ -2535,116 +2399,7 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
         this.mrSpoilTimer = 30f;
     }
 
-    private void UpdateWorkLight()
-    {
-        bool flag = false;
-        if (this.mnStorageUsed == 0)
-        {
-            flag = true;
-        }
-        if (this.mnStorageFree == 0)
-        {
-            flag = true;
-        }
-        if (base.mValue == CRYO_HOPPER)
-        {
-            flag = true;
-        }
-        if (base.mbWellBehindPlayer)
-        {
-            flag = false;
-        }
-        this.mrMaxLightDistance += ((CamDetail.FPS - this.mrMaxLightDistance) * Time.deltaTime) * 0.1f;
-        if (this.mrMaxLightDistance < 2f)
-        {
-            this.mrMaxLightDistance = 2f;
-        }
-        if (this.mrMaxLightDistance > 64f)
-        {
-            this.mrMaxLightDistance = 64f;
-        }
-        if (base.mDistanceToPlayer > this.mrMaxLightDistance)
-        {
-            flag = false;
-        }
-        if (flag)
-        {
-            if (!this.WorkLight.enabled)
-            {
-                this.WorkLight.enabled = true;
-                this.WorkLight.range = 0.05f;
-            }
-            if (base.mValue == CRYO_HOPPER)
-            {
-                if (this.mrCurrentTemperature > SAFE_COLD_TEMP)
-                {
-                    this.WorkLight.color = Color.Lerp(this.WorkLight.color, Color.red, Time.deltaTime);
-                    this.WorkLight.range += 0.1f;
-                }
-                else
-                {
-                    this.WorkLight.color = Color.Lerp(this.WorkLight.color, Color.cyan, Time.deltaTime);
-                    this.WorkLight.range += 0.1f;
-                }
-            }
-            else if (this.mnStorageUsed == 0)
-            {
-                this.WorkLight.color = Color.Lerp(this.WorkLight.color, Color.green, Time.deltaTime);
-                this.WorkLight.range += 0.1f;
-            }
-            else if (this.mnStorageFree == 0)
-            {
-                this.WorkLight.color = Color.Lerp(this.WorkLight.color, Color.red, Time.deltaTime);
-                this.WorkLight.range += 0.1f;
-            }
-            else
-            {
-                this.WorkLight.color = Color.Lerp(this.WorkLight.color, Color.cyan, Time.deltaTime);
-                this.WorkLight.range -= 0.1f;
-            }
-            if (this.WorkLight.range > 1f)
-            {
-                this.WorkLight.range = 1f;
-            }
-        }
-        if (this.WorkLight.enabled)
-        {
-            if (this.WorkLight.range < 0.15f)
-            {
-                this.WorkLight.enabled = false;
-            }
-            else
-            {
-                this.WorkLight.range *= 0.95f;
-            }
-        }
-    }
-
-    public bool WantsPowerFromEntity(SegmentEntity entity)
-    {
-        return ((base.mValue == CRYO_HOPPER) || (base.mValue == MOTORISED_HOPPER));
-    }
-
-    public void AddText(ref string OriText, object TextToAdd, bool print)
-    {
-        string tmpText = OriText;
-        tmpText = tmpText + "\n" + TextToAdd.ToString();
-        OriText = tmpText;
-        if (print)
-        {
-            Variables.Log(OriText);
-        }
-    }
-
-    public void printLocation(BinaryWriter writer)
-    {
-        // Variables.LogValue("BinaryWriter Writer Location", writer.BaseStream.Position.ToString());
-    }
-
-    public void printLocation(BinaryReader Reader)
-    {
-        // Variables.LogValue("BinaryReader Reader Location", Reader.BaseStream.Position.ToString());
-    }
+    //******************** READ/WRITE ********************
 
     public override void Write(BinaryWriter writer)
     {
@@ -2670,7 +2425,7 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
         writer.Write(0);							            //15
         writer.Write(0);                                        //16
         stopwatch.Stop();
-        Variables.Log("["+this.HopperName+"] Writer done in " + stopwatch.ElapsedMilliseconds + ", writerLocation = " + writer.BaseStream.Position);
+        Variables.Log("[" + this.HopperName + "] Writer done in " + stopwatch.ElapsedMilliseconds + ", writerLocation = " + writer.BaseStream.Position);
     }
 
     public override void Read(BinaryReader reader, int entityVersion)
@@ -2697,7 +2452,7 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
         reader.ReadInt32();                                     //15
         reader.ReadInt32();                                     //16
         stopwatch.Stop();
-        Variables.Log("["+this.HopperName+"] Reading done in " + stopwatch.ElapsedMilliseconds + ", readerLocation = " + reader.BaseStream.Position);
+        Variables.Log("[" + this.HopperName + "] Reading done in " + stopwatch.ElapsedMilliseconds + ", readerLocation = " + reader.BaseStream.Position);
 
         //ALL THE READING DONE
         this.mnStorageUsed = StorageUsed;
@@ -2745,6 +2500,9 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
         }
 
     }
+
+
+    //******************** COMMUNITY ITEM INTERFACE (IN USE?) ********************
 
     public bool HasItems()
     {
@@ -2824,13 +2582,11 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
         return this.RemoveSingleSpecificItemOrCube(eRequestType.eAny);
     }
 
-    /* --------------------------------------------------------------------------------------------------- */
+    //********************************************************************************
+    //******************** STORAGEUSERINTERFACE (NEW STORAGE API) ********************
+    //********************************************************************************
 
-    public eHopperPermissions GetPermissions()
-    {
-        return mPermissions;
-    }
-
+    //******************** GET HOPPER STATUS ********************
     public bool IsEmpty()
     {
         return mnStorageUsed <= 0;
@@ -2855,6 +2611,28 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
     {
         get { return mbAllowLogistics; }
     }
+
+    public int CountCubes(ushort cube, ushort value)
+    {
+        return CountHowManyOfType(cube, value);
+    }
+
+    public int TotalCapacity
+    {
+        get { return mnMaxStorage; }
+    }
+
+    public int UsedCapacity
+    {
+        get { return mnStorageUsed; }
+    }
+
+    public int RemainingCapacity
+    {
+        get { return mnStorageFree; }
+    }
+
+    //******************** TRY TO DO STUFF ********************
 
     public bool TryExtract(InventoryExtractionOptions options, ref InventoryExtractionResults results)
     {
@@ -3345,7 +3123,7 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
             CountFreeSlots();
             MarkDirtyDelayed();
 
-            LogisticsOperation();
+            //LogisticsOperation();
             RequestImmediateNetworkUpdate();
 
             return true;
@@ -3375,7 +3153,7 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
 	/// <param name="sendImmediateNetworkUpdate">Sends an immediate network update.</param>
 	public bool TryDeliverItem(StorageUserInterface sourceEntity, ItemBase item, ushort cubeType, ushort cubeValue, bool sendImmediateNetworkUpdate)
     {
-        if (mnStorageFree > 0)
+        if (mnStorageFree > 0 && (CheckExemplar(item) || CheckExemplar(cubeType,cubeValue)))
         {
             if (item != null)
             {
@@ -3490,7 +3268,6 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
         return returnedAmount;
     }
 
-
     public int TryPartialExtractItems(StorageUserInterface sourceEntity, int itemId, int amount)
     {
         ItemBase returnedItem;
@@ -3503,7 +3280,6 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
         return returnedAmount;
     }
 
-
     public bool TryExtractAny(StorageUserInterface sourceEntity, int amount, out ItemBase item)
     {
         ushort returnedCubeType;
@@ -3513,15 +3289,13 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
         return TryExtract(eHopperRequestType.eAny, -1, 0, 0, false, amount, amount, false, false, false, true, out item, out returnedCubeType, out returnedCubeValue, out returnedAmount);
     }
 
-
     public bool TryInsert(InventoryInsertionOptions options, ref InventoryInsertionResults results)
     {
         // Check we have not run out of space.
-        if (mnStorageFree <= 0)
+        if (mnStorageFree <= 0 && (CheckExemplar(options.Item)))
         {
             return false;
         }
-
         if (options.Item != null)
         {
             // Get the number of items represented by this item.
@@ -3609,11 +3383,21 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
 
     public bool TryInsert(StorageUserInterface sourceEntity, ItemBase item)
     {
+        if (!CheckExemplar(item))
+        {
+            return false;
+        }
+
         return AddItem(item);
     }
 
     public bool TryInsert(StorageUserInterface sourceEntity, ushort cube, ushort value, int amount)
     {
+        if (!CheckExemplar(cube, value))
+        {
+            return false;
+        }
+
         if (amount == 1)
         {
             AddCube(cube, value);
@@ -3634,36 +3418,57 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
         return true;
     }
 
-    public int TryPartialInsert(StorageUserInterface sourceEntity, ItemBase item)
+    public int TryPartialInsert(StorageUserInterface sourceEntity, ref ItemBase item, bool alwaysCloneItem, bool updateSourceItem)
     {
-        int totalItemCount = ItemManager.GetCurrentStackSize(item);
-
-        int insertItemCount = totalItemCount;
-
-        ItemBase copyItem;
-        if (totalItemCount > mnStorageFree)
+        if (!CheckExemplar(item))
         {
-            insertItemCount = mnStorageFree;
-            copyItem = ItemManager.CloneItem(item, insertItemCount);
+            return 0;
+        }
+        int currentStackSize = ItemManager.GetCurrentStackSize(item);
+        int num = currentStackSize;
+        if (this.mnStorageFree == 0)
+        {
+            return 0;
+        }
+        ItemBase lItemToAdd;
+        if (currentStackSize > this.mnStorageFree)
+        {
+            num = this.mnStorageFree;
+            lItemToAdd = ItemManager.CloneItem(item, num);
+        }
+        else if (alwaysCloneItem)
+        {
+            lItemToAdd = ItemManager.CloneItem(item, currentStackSize);
         }
         else
         {
-            copyItem = item;
+            lItemToAdd = item;
         }
-
-        if (false == AddItem(copyItem))
+        if (!this.AddItem(lItemToAdd))
         {
-            // This should not happen. Race condition?
             return 0;
         }
-
-        return insertItemCount;
+        if (updateSourceItem)
+        {
+            if (currentStackSize > this.mnStorageFree)
+            {
+                ItemManager.SetItemCount(item, currentStackSize - num);
+            }
+            else
+            {
+                item = null;
+            }
+        }
+        return num;
     }
 
     public int TryPartialInsert(StorageUserInterface sourceEntity, ushort cube, ushort value, int amount)
     {
+        if (!CheckExemplar(cube,value))
+        {
+            return 0;
+        }
         int remaining = amount;
-
         while (remaining > 0 && mnStorageFree > 0)
         {
             AddCube(cube, value);
@@ -3672,6 +3477,8 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
 
         return amount - remaining;
     }
+
+    //******************** RETURN INVENTORY INFORMATION ********************
 
     public int CountItems(InventoryExtractionOptions options)
     {
@@ -3707,27 +3514,6 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
         {
             return CountHowManyOfType(cube, value);
         }
-    }
-
-
-    public int CountCubes(ushort cube, ushort value)
-    {
-        return CountHowManyOfType(cube, value);
-    }
-
-    public int TotalCapacity
-    {
-        get { return mnMaxStorage; }
-    }
-
-    public int UsedCapacity
-    {
-        get { return mnStorageUsed; }
-    }
-
-    public int RemainingCapacity
-    {
-        get { return mnStorageFree; }
     }
 
     // ***************************************************************************************************************************************
@@ -3778,20 +3564,8 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
         return amountToExtract - amountLeft;
     }
     // ***************************************************************************************************************************************
-    public void IterateContents(global::IterateItem itemFunc, object state)
-    {
-        if (itemFunc == null) return;
 
 
-        for (int i = 0; i < mnMaxStorage; i++)
-        {
-            ItemBase item = maItemInventory[i];
-            if (item == null) continue;
-            if (!itemFunc(maItemInventory[i], state))
-                return;
-        }
-
-    }
     // ***************************************************************************************************************************************
     void FinaliseHopperChange()
     {
@@ -3799,7 +3573,12 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
         RequestImmediateNetworkUpdate();
         CountFreeSlots();
     }
-    // ***************************************************************************************************************************************
+
+    //***************************************************************************************************************************************
+    //********************************************************************************
+    //******************** STORAGEUSERINTERFACE (NEW STORAGE API) ********************
+    //********************************************************************************
+    //******************** ENUM'S ********************
     public enum ePermissions
     {
         AddAndRemove,
@@ -3825,8 +3604,6 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, CommunityItemInterf
         eSmeltable,
         eNum
     }
-
-    public delegate bool IterateItem(ItemBase item);
 }
 
 

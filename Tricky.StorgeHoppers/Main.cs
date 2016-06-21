@@ -8,9 +8,10 @@ using System.Net;
 class Variables
 {
     public static string ModName = "Tricky.ExtraStorageHoppers";
-    public static string ModVersion = "7";
+    public static string ModVersion = "6";
     public static bool ModDebug = true;
-    public static string FCEModPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\ProjectorGames\\FortressCraft\\Mods\\ModLog\\" + ModName + "\\" + ModVersion + "\\";
+    public static string FCEModPathOLD = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\ProjectorGames\\FortressCraft\\Mods\\ModLog";
+    public static string FCEModPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\ProjectorGames\\FortressCraft\\Mods\\" + ModName + "\\" + ModVersion + "\\ModLog\\";
     public static string LogFilePath = FCEModPath + "ModLog.log";
     public static string PreString = "[" + ModName + "][V" + ModVersion + "][" + System.DateTime.Now.Hour + ":" + System.DateTime.Now.Minute + ":" + System.DateTime.Now.Second + "." + System.DateTime.Now.Millisecond + "]";
     private static object locker = new object();
@@ -118,8 +119,7 @@ class Variables
         }
         catch (Exception)
         {
-
-            throw;
+            Debug.LogError("Something went wrong when trying to delete the ModLog File");
         }
 
     }
@@ -133,11 +133,15 @@ public class ExtraStorageHoppersMain : FortressCraftMod
 
     void Start()
     {
-
+        if (Directory.Exists(Variables.FCEModPathOLD))
+        {
+            Directory.Delete(Variables.FCEModPathOLD, true);
+        }
         if (!Directory.Exists(Variables.FCEModPath))
         {
             Directory.CreateDirectory(Variables.FCEModPath);
         }
+
         Variables.DelteLogFile();
         Variables.PrintLine();
         Variables.LogPlain("[" + Variables.ModName + "] Loaded!");
