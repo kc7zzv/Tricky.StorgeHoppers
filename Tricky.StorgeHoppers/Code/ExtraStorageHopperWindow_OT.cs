@@ -5,6 +5,15 @@ using UnityEngine;
 
 public abstract class ExtraStorageHopperWindow_OT
 {
+    public const string InterfaceName = "ExtraStorageHopperWindow_OT";
+
+    public const string InterfaceTogglePermissions = "TogglePermissions";
+
+    public const string InterfaceToggleHoover = "ToggleHoover";
+
+    public const string InterfaceTakeItems = "TakeItems";
+
+    public const string InterfaceStoreItems = "StoreItems";
     public static bool StoreItems(Player player, ExtraStorageHoppers_OT hopper, ItemBase itemToStore)
     {
         if ((player == WorldScript.mLocalPlayer) && !WorldScript.mLocalPlayer.mInventory.RemoveItemByExample(itemToStore, true))
@@ -67,7 +76,7 @@ public abstract class ExtraStorageHopperWindow_OT
         player.mInventory.VerifySuitUpgrades();
         if (!WorldScript.mbIsServer)
         {
-            NetworkManager.instance.SendInterfaceCommand("StorageHopperWindow", "StoreItems", null, itemToStore, hopper, 0f);
+            NetworkManager.instance.SendInterfaceCommand("ExtraStorageHopperWindow_OT", "StoreItems", null, itemToStore, hopper, 0f);
         }
         return true;
     }
@@ -139,7 +148,7 @@ public abstract class ExtraStorageHopperWindow_OT
                 player.mInventory.VerifySuitUpgrades();
                 if (!WorldScript.mbIsServer)
                 {
-                    NetworkManager.instance.SendInterfaceCommand("StorageHopperWindow", "TakeItems", null, lItemToAdd, hopper, 0f);
+                    NetworkManager.instance.SendInterfaceCommand("ExtraStorageHopperWindow_OT", "TakeItems", null, lItemToAdd, hopper, 0f);
                 }
                 return true;
             }
@@ -152,7 +161,7 @@ public abstract class ExtraStorageHopperWindow_OT
         hopper.ToggleHoover();
         if (!WorldScript.mbIsServer)
         {
-            NetworkManager.instance.SendInterfaceCommand("StorageHopperWindow", "ToggleHoover", null, null, hopper, 0f);
+            NetworkManager.instance.SendInterfaceCommand("ExtraStorageHopperWindow_OT", "ToggleHoover", null, null, hopper, 0f);
         }
         return true;
     }
@@ -161,9 +170,35 @@ public abstract class ExtraStorageHopperWindow_OT
     {
         hopper.TogglePermissions();
         if (!WorldScript.mbIsServer)
-        {
-            NetworkManager.instance.SendInterfaceCommand("StorageHopperWindow", "TogglePermissions", null, null, hopper, 0f);
+        { 
+            NetworkManager.instance.SendInterfaceCommand("ExtraStorageHopperWindow_OT", "TogglePermissions", null, null, hopper, 0f);
         }
         return true;
+    }
+
+    public static NetworkInterfaceResponse HandleNetworkCommand(Player player, NetworkInterfaceCommand nic)
+    {
+        ExtraStorageHoppers_OT storageHopper = nic.target as ExtraStorageHoppers_OT;
+        string command = nic.command;
+        switch (command)
+        {
+            case "TogglePermissions":
+                ExtraStorageHopperWindow_OT.TogglePermissions(player, storageHopper);
+                break;
+            case "ToggleHoover":
+                ExtraStorageHopperWindow_OT.ToggleHoover(player, storageHopper);
+                break;
+            case "TakeItems":
+                ExtraStorageHopperWindow_OT.TakeItems(player, storageHopper);
+                break;
+            case "StoreItems":
+                ExtraStorageHopperWindow_OT.StoreItems(player, storageHopper, nic.itemContext);
+                break;
+        }
+        return new NetworkInterfaceResponse
+        {
+            entity = storageHopper,
+            inventory = player.mInventory
+        };
     }
 }
