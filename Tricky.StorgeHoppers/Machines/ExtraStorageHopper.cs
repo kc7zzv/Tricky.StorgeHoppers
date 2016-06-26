@@ -949,6 +949,8 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
 
                 }
             }
+            //if exemplar is set to a cube, EVERYTHING EXCEPT, and its and item... SLOW
+            //Else works fine
             if ((Conveyor != null) && Conveyor.mbReadyToConvey && (lrDot != 1) && (!Conveyor.IsCarryingCargo()) && (Conveyor.mValue != 12) && (this.mnStorageUsed > 0))
             {
                 ItemBase item = this.RemoveSingleSpecificItemOrCubeRoundRobin((ExtraStorageHoppers.eRequestType)Conveyor.meRequestType);
@@ -959,16 +961,39 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
                     this.MarkDirtyDelayed();
                 }
             }
-            else if ((Conveyor != null) && (Conveyor.mbReadyToConvey) && (lrDot != 1) && (!Conveyor.IsCarryingCargo()) && (Conveyor.mValue == 12) && (this.mnStorageUsed > 0) && (Conveyor.ExemplarItemID != -1) && (this.CountHowManyOfType(Conveyor.ExemplarBlockID, Conveyor.ExemplarBlockValue) > 0))
+            else if ((Conveyor != null) &&(Conveyor.mbReadyToConvey) && (lrDot != 1) && (!Conveyor.IsCarryingCargo()) && (Conveyor.mValue == 12) && (this.mnStorageUsed > 0))
             {
-                ItemBase item = this.RemoveSingleSpecificItemByID(Conveyor.ExemplarItemID, Conveyor.mbInvertExemplar);
+                ItemBase item = null;
+                ItemCubeStack lCubeItem = null;
+                if (Conveyor.ExemplarItemID != -1)
+                { 
+                    item = this.RemoveSingleSpecificItemByID(Conveyor.ExemplarItemID, Conveyor.mbInvertExemplar);
+                }
+                else if (Conveyor.ExemplarBlockID != 0 && Conveyor.ExemplarBlockValue != 0) {
+                    lCubeItem = new ItemCubeStack(Conveyor.ExemplarBlockID, Conveyor.ExemplarBlockValue, 1);
+                    item = this.RemoveSingleSpecificCubeStack(lCubeItem, Conveyor.mbInvertExemplar);
+                }
+                else
+                {
+                    Debug.LogError("No Item was found");
+                }
+                
                 if (item != null)
                 {
                     Conveyor.AddItem(item);
                     this.CountFreeSlots();
                     this.MarkDirtyDelayed();
                 }
-
+                else if (item == null) 
+                {
+                    Debug.LogError("Item was null, and cube was null. WHY?");
+                    Debug.LogError("BlockID: " + Conveyor.ExemplarBlockID);
+                    Debug.LogError("BlockValue: " + Conveyor.ExemplarBlockValue);
+                    Debug.LogError("ItemID: " + Conveyor.ExemplarItemID);
+                } else
+                {
+                    Debug.LogError("WUT!");
+                }
             }
         }
 
@@ -3305,14 +3330,15 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
 
     public bool TryInsert(StorageUserInterface sourceEntity, ushort cube, ushort value, int amount)
     {
+        if (mnStorageFree < amount)
+        {
+            return false;
+        }
         if (amount == 1)
         {
             AddCube(cube, value);
             return true;
         }
-
-        if (mnStorageFree < amount)
-            return false;
 
         int remaining = amount;
 
@@ -3457,10 +3483,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
                 }
             }
         }
-
-
         FinaliseHopperChange();
-
         return amountToExtract - amountLeft;
     }
     // ***************************************************************************************************************************************
@@ -3479,15 +3502,6 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
     //******************** STORAGEUSERINTERFACE (NEW STORAGE API) ********************
     //********************************************************************************
     //******************** ENUM'S ********************
-    public enum ePermissions
-    {
-        AddAndRemove,
-        RemoveOnly,
-        AddOnly,
-        Locked,
-        eNumPermissions
-    }
-
     public enum eRequestType
     {
         eAny,

@@ -1,9 +1,6 @@
 ﻿using System;
 using UnityEngine;
-using System.Collections.Generic;
 using System.IO;
-using System.Xml;
-using System.Net;
 
 class Variables
 {
