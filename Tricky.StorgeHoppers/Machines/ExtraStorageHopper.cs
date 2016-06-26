@@ -969,7 +969,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
                 { 
                     item = this.RemoveSingleSpecificItemByID(Conveyor.ExemplarItemID, Conveyor.mbInvertExemplar);
                 }
-                else if (Conveyor.ExemplarBlockID != 0 && Conveyor.ExemplarBlockValue != 0) {
+                else if (Conveyor.ExemplarBlockID != 0) {
                     lCubeItem = new ItemCubeStack(Conveyor.ExemplarBlockID, Conveyor.ExemplarBlockValue, 1);
                     item = this.RemoveSingleSpecificCubeStack(lCubeItem, Conveyor.mbInvertExemplar);
                 }
@@ -977,7 +977,14 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
                 {
                     Debug.LogError("No Item was found");
                 }
-                
+                Debug.LogError("Item: " + item.ToString());
+                if (lCubeItem == null)
+                {
+                    Debug.LogError("Cube: NULL");
+                } else
+                {
+                    Debug.LogError("Cube: " + lCubeItem.ToString());
+                }
                 if (item != null)
                 {
                     Conveyor.AddItem(item);
@@ -987,9 +994,9 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
                 else if (item == null) 
                 {
                     Debug.LogError("Item was null, and cube was null. WHY?");
-                    Debug.LogError("BlockID: " + Conveyor.ExemplarBlockID);
-                    Debug.LogError("BlockValue: " + Conveyor.ExemplarBlockValue);
-                    Debug.LogError("ItemID: " + Conveyor.ExemplarItemID);
+                    //Debug.LogError("BlockID: " + Conveyor.ExemplarBlockID);
+                    //Debug.LogError("BlockValue: " + Conveyor.ExemplarBlockValue);
+                    //Debug.LogError("ItemID: " + Conveyor.ExemplarItemID);
                 } else
                 {
                     Debug.LogError("WUT!");
