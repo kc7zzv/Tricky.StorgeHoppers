@@ -5,13 +5,17 @@ using System.IO;
 class Variables
 {
     public static string ModName = "Tricky.ExtraStorageHoppers";
-    public static string ModVersion = "6";
+    public static string ModVersion = "7";
     public static bool ModDebug = true;
+	//ONLY USED IF THE OLD MODLOG FOLDER EXIST, THIS FOLDER CAUSED AN ERROR.
     public static string FCEModPathOLD = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\ProjectorGames\\FortressCraft\\Mods\\ModLog";
-    public static string FCEModPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\ProjectorGames\\FortressCraft\\Mods\\" + ModName + "\\" + ModVersion + "\\ModLog\\";
+	//THIS IS THE NEW MODLOG FOLDER, WHICH IS PLACED INSIDE THE CORRECT MOD FOLDER.
+	public static string FCEModPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\ProjectorGames\\FortressCraft\\Mods\\" + ModName + "\\" + ModVersion + "\\ModLog\\";
     public static string LogFilePath = FCEModPath + "ModLog.log";
-    public static string PreString = "[" + ModName + "][V" + ModVersion + "][" + System.DateTime.Now.Hour + ":" + System.DateTime.Now.Minute + ":" + System.DateTime.Now.Second + "." + System.DateTime.Now.Millisecond + "]";
+    public static string PreString = "[" + System.DateTime.Now.Hour + ":" + System.DateTime.Now.Minute + ":" + System.DateTime.Now.Second + "." + System.DateTime.Now.Millisecond + "]";
     private static object locker = new object();
+	public static int HopperNumber = 0;
+
     public static void Log(object debug)
     {
         if (ModDebug)
@@ -22,6 +26,7 @@ class Variables
         }
 
     }
+
     public static void LogPlain(object debug)
     {
         if (ModDebug)
@@ -54,6 +59,7 @@ class Variables
         }
 
     }
+
     public static void PrintLine()
     {
         WriteStringToFile("*******************************************************************************************");
@@ -145,15 +151,14 @@ public class ExtraStorageHoppersMain : FortressCraftMod
         Variables.LogPlain("Mod created by Tricky!");
         Variables.LogPlain("Version " + Variables.ModVersion + " loaded!");
         Variables.LogPlain("Get mod updates here: http://steamcommunity.com/app/254200/discussions/1/371918937287492860/");
-        Variables.PrintLine();
+		Variables.LogPlain("SOURCE AVALIBLE, APACHE LICENCE 2.0 (C) 2016");
+		Variables.PrintLine();
     }
 
     public override ModRegistrationData Register()
     {
         ModRegistrationData modRegistrationData = new ModRegistrationData();
-        modRegistrationData.RegisterEntityHandler("Tricky.ExtraStorageHoppers");
-        modRegistrationData.RegisterEntityHandler("Tricky.ExtraStorageHoppers_OT");
-        UIManager.NetworkCommandFunctions.Add("ExtraStorageHopperWindow_OT", new UIManager.HandleNetworkCommand(ExtraStorageHopperWindow_OT.HandleNetworkCommand));
+		modRegistrationData.RegisterEntityHandler ("Tricky.ExtraStorageHoppers");
         UIManager.NetworkCommandFunctions.Add("ExtraStorageHopperWindow", new UIManager.HandleNetworkCommand(ExtraStorageHopperWindow.HandleNetworkCommand));
         TerrainDataEntry CubeEntry;
         TerrainDataValueEntry EntryValue;
@@ -161,12 +166,6 @@ public class ExtraStorageHoppersMain : FortressCraftMod
         if (CubeEntry != null)
         {
             mHopperCubeType = CubeEntry.CubeType;
-
-        }
-        TerrainData.GetCubeByKey("Tricky.ExtraStorageHoppers_OT", out CubeEntry, out EntryValue);
-        if (CubeEntry != null)
-        {
-            mHopperCubeType2 = CubeEntry.CubeType;
 
         }
         return modRegistrationData;
@@ -178,10 +177,6 @@ public class ExtraStorageHoppersMain : FortressCraftMod
         if (parameters.Cube == mHopperCubeType)
         {
             result.Entity = new ExtraStorageHoppers(parameters.Segment, parameters.X, parameters.Y, parameters.Z, parameters.Cube, parameters.Flags, parameters.Value, parameters.LoadFromDisk);
-        }
-        else if (parameters.Cube == mHopperCubeType2)
-        {
-            result.Entity = new ExtraStorageHoppers_OT(parameters.Segment, parameters.X, parameters.Y, parameters.Z, parameters.Cube, parameters.Flags, parameters.Value, parameters.LoadFromDisk);
         }
         return result;
     }

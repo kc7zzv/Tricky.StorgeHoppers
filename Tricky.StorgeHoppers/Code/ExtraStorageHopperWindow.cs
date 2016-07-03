@@ -14,6 +14,33 @@ public abstract class ExtraStorageHopperWindow
     public const string InterfaceTakeItems = "TakeItems";
 
     public const string InterfaceStoreItems = "StoreItems";
+
+	public static void SetNewExamplar(Player player, ExtraStorageHoppers hopper, ItemBase itemToSet)
+	{
+		hopper.SetExemplar (itemToSet);
+		FloatingCombatTextManager.instance.QueueText(hopper.mnX, hopper.mnY + 1L, hopper.mnZ, 0.75f, "Set The Type to " + ItemManager.GetItemName(itemToSet), Color.blue, 1.5f);
+		if (!WorldScript.mbIsServer)
+		{
+			NetworkManager.instance.SendInterfaceCommand("ExtraStorageHopperWindow", "SetExemplar", null, itemToSet, hopper, 0f);
+		}
+	}
+
+	public static void SetNewExamplar_Fail(Player player, ExtraStorageHoppers hopper)
+	{
+		FloatingCombatTextManager.instance.QueueText(hopper.mnX, hopper.mnY + 1L, hopper.mnZ, 0.75f, "Error: Hopper not empty!", Color.blue, 1.5f);
+	}
+
+	public static void DebugMode(Player player, ExtraStorageHoppers hopper) {
+		hopper.ToggleDebugMode();
+		FloatingCombatTextManager.instance.QueueText(hopper.mnX, hopper.mnY + 1L, hopper.mnZ, 0.75f, "SET DEBUG MODE TO: "+hopper.GetDebugMode(), new Color(0,2,0), 1.5f);
+		if (!WorldScript.mbIsServer)
+		{
+			NetworkManager.instance.SendInterfaceCommand("ExtraStorageHopperWindow", "DebugMode", null, null, hopper, 0f);
+		}
+
+
+	}
+
     public static bool StoreItems(Player player, ExtraStorageHoppers hopper, ItemBase itemToStore)
     {
         if ((player == WorldScript.mLocalPlayer) && !WorldScript.mLocalPlayer.mInventory.RemoveItemByExample(itemToStore, true))
@@ -176,6 +203,7 @@ public abstract class ExtraStorageHopperWindow
 
     public static NetworkInterfaceResponse HandleNetworkCommand(Player player, NetworkInterfaceCommand nic)
     {
+		//NIC = NetworkInterfaceCommand
         ExtraStorageHoppers storageHopper = nic.target as ExtraStorageHoppers;
         string command = nic.command;
         switch (command)
@@ -192,6 +220,12 @@ public abstract class ExtraStorageHopperWindow
             case "StoreItems":
                 ExtraStorageHopperWindow.StoreItems(player, storageHopper, nic.itemContext);
                 break;
+			case "DebugMode":
+				ExtraStorageHopperWindow.DebugMode (player, storageHopper);
+				break;
+			case "SetExemplar":
+				ExtraStorageHopperWindow.SetNewExamplar(player, storageHopper, nic.itemContext);
+				break;
         }
         return new NetworkInterfaceResponse
         {

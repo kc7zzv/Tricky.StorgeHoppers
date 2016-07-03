@@ -14,6 +14,7 @@ public abstract class ExtraStorageHopperWindow_OT
     public const string InterfaceTakeItems = "TakeItems";
 
     public const string InterfaceStoreItems = "StoreItems";
+
     public static bool StoreItems(Player player, ExtraStorageHoppers_OT hopper, ItemBase itemToStore)
     {
         if ((player == WorldScript.mLocalPlayer) && !WorldScript.mLocalPlayer.mInventory.RemoveItemByExample(itemToStore, true))
@@ -80,7 +81,6 @@ public abstract class ExtraStorageHopperWindow_OT
         }
         return true;
     }
-
 
     public static void SetNewExamplar(Player player, ExtraStorageHoppers_OT hopper, ItemBase itemToSet)
     {
