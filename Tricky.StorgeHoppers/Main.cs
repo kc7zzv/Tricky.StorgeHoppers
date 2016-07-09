@@ -131,20 +131,24 @@ class Variables
 public class ExtraStorageHoppersMain : FortressCraftMod
 {
     public ushort mHopperCubeType;
-    public ushort mHopperCubeType2;
+    public ushort mHopperCubeValue;
+    public TerrainDataEntry mHopperCubeEntry;
+    public TerrainDataValueEntry mHopperValueEntry;
     //MY STUFF
 
     void Start()
     {
+        //DELTES OLD LOG FOLDER
         if (Directory.Exists(Variables.FCEModPathOLD))
         {
             Directory.Delete(Variables.FCEModPathOLD, true);
         }
+        //CREATES THE NEW LOG FOLDER
         if (!Directory.Exists(Variables.FCEModPath))
         {
             Directory.CreateDirectory(Variables.FCEModPath);
         }
-
+        //Prints the starting stuff to show waht version
         Variables.DelteLogFile();
         Variables.PrintLine();
         Variables.LogPlain("[" + Variables.ModName + "] Loaded!");
@@ -166,18 +170,55 @@ public class ExtraStorageHoppersMain : FortressCraftMod
         if (CubeEntry != null)
         {
             mHopperCubeType = CubeEntry.CubeType;
-
+            mHopperCubeEntry = CubeEntry;
         }
         return modRegistrationData;
     }
 
-    public override ModCreateSegmentEntityResults CreateSegmentEntity(ModCreateSegmentEntityParameters parameters)
+    public override void CreateSegmentEntity(ModCreateSegmentEntityParameters parameters, ModCreateSegmentEntityResults results)
     {
-        ModCreateSegmentEntityResults result = new ModCreateSegmentEntityResults();
+        parameters.ObjectType = SpawnableObjectEnum.LogisticsHopper;
+        ushort HopperMaxStorage = 10;
+        ushort HopperColorR = 1;
+        ushort HopperColorG = 2;
+        ushort HopperColorB = 3;
+        string HopperName = "NO NAME";
+        bool HopperOT = false;
+        Color HopperColor = new Color(1,2,3);
         if (parameters.Cube == mHopperCubeType)
         {
-            result.Entity = new ExtraStorageHoppers(parameters.Segment, parameters.X, parameters.Y, parameters.Z, parameters.Cube, parameters.Flags, parameters.Value, parameters.LoadFromDisk);
+            var entry = mHopperCubeEntry.GetValue(parameters.Value);
+            if (entry != null && entry.Custom != null)
+            {
+                try
+                {
+                    HopperMaxStorage = Convert.ToUInt16(entry.Custom.GetValue("Tricky.MaxStorage"));
+                    Variables.LogValue("HopperMaxStorage", HopperMaxStorage);
+                    HopperColorR = Convert.ToUInt16(entry.Custom.GetValue("Tricky.ColorR"));
+                    Variables.LogValue("HopperColorR", HopperColorR);
+                    HopperColorG = Convert.ToUInt16(entry.Custom.GetValue("Tricky.ColorG"));
+                    Variables.LogValue("HopperColorG", HopperColorG);
+                    HopperColorB = Convert.ToUInt16(entry.Custom.GetValue("Tricky.ColorB"));
+                    Variables.LogValue("HopperColorB", HopperColorB);
+                    HopperColor = new Color(HopperColorR, HopperColorG, HopperColorB);
+                    Variables.LogValue("HopperColor", HopperColor);
+                    HopperName = entry.Custom.GetValue("Tricky.HopperName");
+                    Variables.LogValue("HopperName", HopperName);
+                    HopperOT = Convert.ToBoolean(entry.Custom.GetValue("Tricky.OT"));
+                    Variables.LogValue("HopperOT", HopperOT);
+                }
+                catch (Exception)
+                {
+                    Variables.LogError("Something went wrong, when loading custom values for a hopper!");
+                    results.Entity = null;
+                    return;
+                    throw;
+                }
+
+            }
+            results.Entity = new ExtraStorageHoppers(parameters,HopperMaxStorage, HopperColor, HopperName, HopperOT);
+            
         }
-        return result;
+        return;
     }
 }

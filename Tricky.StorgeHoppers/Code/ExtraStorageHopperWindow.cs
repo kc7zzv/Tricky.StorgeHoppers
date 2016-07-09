@@ -15,52 +15,53 @@ public abstract class ExtraStorageHopperWindow
 
     public const string InterfaceStoreItems = "StoreItems";
 
-	public static void SetNewExamplar(Player player, ExtraStorageHoppers hopper, ItemBase itemToSet)
-	{
-		hopper.SetExemplar (itemToSet);
-		FloatingCombatTextManager.instance.QueueText(hopper.mnX, hopper.mnY + 1L, hopper.mnZ, 0.75f, "Set The Type to " + ItemManager.GetItemName(itemToSet), Color.blue, 1.5f);
-		if (!WorldScript.mbIsServer)
-		{
-			NetworkManager.instance.SendInterfaceCommand("ExtraStorageHopperWindow", "SetExemplar", null, itemToSet, hopper, 0f);
-		}
-	}
+    public static void SetNewExamplar(Player player, ExtraStorageHoppers hopper, ItemBase itemToSet)
+    {
+        hopper.SetExemplar(itemToSet);
+        FloatingCombatTextManager.instance.QueueText(hopper.mnX, hopper.mnY + 1L, hopper.mnZ, 0.75f, "Set The Type to " + ItemManager.GetItemName(itemToSet), Color.blue, 1.5f);
+        if (!WorldScript.mbIsServer)
+        {
+            NetworkManager.instance.SendInterfaceCommand("ExtraStorageHopperWindow", "SetExemplar", null, itemToSet, hopper, 0f);
+        }
+    }
 
-	public static void SetNewExamplar_Fail(Player player, ExtraStorageHoppers hopper)
-	{
-		FloatingCombatTextManager.instance.QueueText(hopper.mnX, hopper.mnY + 1L, hopper.mnZ, 0.75f, "Error: Hopper not empty!", Color.blue, 1.5f);
-	}
+    public static void SetNewExamplar_Fail(Player player, ExtraStorageHoppers hopper)
+    {
+        FloatingCombatTextManager.instance.QueueText(hopper.mnX, hopper.mnY + 1L, hopper.mnZ, 0.75f, "Error: Hopper not empty!", Color.blue, 1.5f);
+    }
 
-	public static void DebugMode(Player player, ExtraStorageHoppers hopper) {
-		hopper.ToggleDebugMode();
-		FloatingCombatTextManager.instance.QueueText(hopper.mnX, hopper.mnY + 1L, hopper.mnZ, 0.75f, "SET DEBUG MODE TO: "+hopper.GetDebugMode(), new Color(0,2,0), 1.5f);
-		if (!WorldScript.mbIsServer)
-		{
-			NetworkManager.instance.SendInterfaceCommand("ExtraStorageHopperWindow", "DebugMode", null, null, hopper, 0f);
-		}
+    public static void DebugMode(Player player, ExtraStorageHoppers hopper)
+    {
+        hopper.ToggleDebugMode();
+        hopper.PrintAllHopperInfo();
+
+        FloatingCombatTextManager.instance.QueueText(hopper.mnX, hopper.mnY + 1L, hopper.mnZ, 0.75f, "SET DEBUG MODE TO: " + hopper.GetDebugMode(), new Color(0, 2, 0), 1.5f);
+        if (!WorldScript.mbIsServer)
+        {
+            NetworkManager.instance.SendInterfaceCommand("ExtraStorageHopperWindow", "DebugMode", null, null, hopper, 0f);
+        }
 
 
-	}
+    }
 
     public static bool StoreItems(Player player, ExtraStorageHoppers hopper, ItemBase itemToStore)
     {
+
         if ((player == WorldScript.mLocalPlayer) && !WorldScript.mLocalPlayer.mInventory.RemoveItemByExample(itemToStore, true))
         {
             Debug.Log(string.Concat(new object[] { "Player ", player.mUserName, " doesnt have ", player.GetItemName(itemToStore) }));
             return false;
         }
-        if (hopper.GetCubeValue() != 2)
-        { 
-            if (!hopper.AddItem(itemToStore))
+        if (!hopper.AddItem(itemToStore))
+        {
+            Debug.LogWarning("Bad thing that used to be unhandled! Thread interaccess probably caused this to screw up!");
+            if (player == WorldScript.mLocalPlayer)
             {
-                Debug.LogWarning("Bad thing that used to be unhandled! Thread interaccess probably caused this to screw up!");
-                if (player == WorldScript.mLocalPlayer)
-                {
-                    WorldScript.mLocalPlayer.mInventory.AddItem(itemToStore);
-                    return false;
-                }
-                player.mInventory.AddItem(itemToStore);
+                WorldScript.mLocalPlayer.mInventory.AddItem(itemToStore);
                 return false;
             }
+            player.mInventory.AddItem(itemToStore);
+            return false;
         }
         if (player.mbIsLocalPlayer)
         {
@@ -98,7 +99,7 @@ public abstract class ExtraStorageHopperWindow
             {
                 green = Color.gray;
             }
-            if (hopper.GetCubeValue() == 2)
+            if (hopper.GetCubeValue() == 0)
             {
                 green = Color.red;
                 FloatingCombatTextManager.instance.QueueText(hopper.mnX, hopper.mnY + 1L, hopper.mnZ, 0.75f, "Sent " + player.GetItemName(lItem) + " to the void!", green, 1.5f);
@@ -107,7 +108,7 @@ public abstract class ExtraStorageHopperWindow
             {
                 FloatingCombatTextManager.instance.QueueText(hopper.mnX, hopper.mnY + 1L, hopper.mnZ, 0.75f, "Stored " + player.GetItemName(lItem), green, 1.5f);
             }
-            
+
         }
         player.mInventory.VerifySuitUpgrades();
         if (!WorldScript.mbIsServer)
@@ -119,6 +120,21 @@ public abstract class ExtraStorageHopperWindow
 
     public static bool TakeItems(Player player, ExtraStorageHoppers hopper)
     {
+        //ENABLE/DISABLE FEEDING OF HIVEBIND - ONLY FOR VOID HOPPER
+        if (hopper.GetCubeValue() == 0)
+        {
+            if (hopper.FeedHiveMind)
+            {
+                hopper.FeedHiveMind = false;
+                FloatingCombatTextManager.instance.QueueText(hopper.mnX, hopper.mnY + 1L, hopper.mnZ, 1f, "Not Feeding Hivemind!", Color.green, 2f);
+            } else
+            {
+                hopper.FeedHiveMind = true;
+                FloatingCombatTextManager.instance.QueueText(hopper.mnX, hopper.mnY + 1L, hopper.mnZ, 1f, "Feeding Hivemind!", Color.red, 2f);
+            }
+            return true;
+        }
+        //******************** TAKE ITEMS FROM HOPPER AND ADD THEM TO INVENTORY ********************
         if (hopper.mnStorageUsed > 0)
         {
             ItemBase lItemToAdd = hopper.RemoveFirstInventoryItem();
@@ -203,7 +219,7 @@ public abstract class ExtraStorageHopperWindow
 
     public static NetworkInterfaceResponse HandleNetworkCommand(Player player, NetworkInterfaceCommand nic)
     {
-		//NIC = NetworkInterfaceCommand
+        //NIC = NetworkInterfaceCommand
         ExtraStorageHoppers storageHopper = nic.target as ExtraStorageHoppers;
         string command = nic.command;
         switch (command)
@@ -220,12 +236,12 @@ public abstract class ExtraStorageHopperWindow
             case "StoreItems":
                 ExtraStorageHopperWindow.StoreItems(player, storageHopper, nic.itemContext);
                 break;
-			case "DebugMode":
-				ExtraStorageHopperWindow.DebugMode (player, storageHopper);
-				break;
-			case "SetExemplar":
-				ExtraStorageHopperWindow.SetNewExamplar(player, storageHopper, nic.itemContext);
-				break;
+            case "DebugMode":
+                ExtraStorageHopperWindow.DebugMode(player, storageHopper);
+                break;
+            case "SetExemplar":
+                ExtraStorageHopperWindow.SetNewExamplar(player, storageHopper, nic.itemContext);
+                break;
         }
         return new NetworkInterfaceResponse
         {

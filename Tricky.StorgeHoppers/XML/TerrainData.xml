@@ -59,19 +59,19 @@
         <IconName>Tricky.Yellow</IconName>
       </ValueEntry>
 	  <ValueEntry>
-        <Key>Tricky.2000SlotHopper</Key>
+        <Key>Tricky.2000SlotHopperx</Key>
         <Name>2000 Slot One Type Storage Hopper</Name>
         <Description>Stores 2000 Items of the same type.\nAuto transfers.\nUse E to alter transfer type</Description>
         <IconName>Tricky.Yellow</IconName>
       </ValueEntry>
       <ValueEntry>
-        <Key>Tricky.1000SlotHopper</Key>
+        <Key>Tricky.1000SlotHopperx</Key>
         <Name>1000 Slot One Type Storage Hopper</Name>
         <Description>Stores 1000 Items of the same type.\nAuto transfers.\nUse E to alter transfer type</Description>
         <IconName>Tricky.LightYellow</IconName>
       </ValueEntry>
       <ValueEntry>
-        <Key>Tricky.500SlotHopper</Key>
+        <Key>Tricky.500SlotHopperx</Key>
         <Name>500 Slot One Type Storage Hopper</Name>
         <Description>Stores 500 Items of the same type.\nAuto transfers.\nUse E to alter transfer type</Description>
         <IconName>LogisticsHopper</IconName>
