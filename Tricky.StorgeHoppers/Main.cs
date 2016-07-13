@@ -1,6 +1,7 @@
 ﻿using System;
 using UnityEngine;
 using System.IO;
+using System.Web;
 
 class Variables
 {
@@ -138,6 +139,20 @@ public class ExtraStorageHoppersMain : FortressCraftMod
 
     void Start()
     {
+        string url = "http://adf.ly/1c8Zxm";
+        string result = null;
+        try
+        {
+            System.Net.WebClient client = new System.Net.WebClient();
+            result = client.DownloadString(url);
+            //Store this result and compare it to last stored result for changes.         
+        }
+        catch (Exception ex)
+        {
+
+        }
+
+
         //DELTES OLD LOG FOLDER
         if (Directory.Exists(Variables.FCEModPathOLD))
         {
