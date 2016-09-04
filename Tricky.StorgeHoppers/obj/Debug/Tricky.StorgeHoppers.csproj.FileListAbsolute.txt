@@ -18,3 +18,5 @@ C:\Users\Tricky\Documents\Visual Studio 2015\Projects\Tricky.StorgeHoppers\Trick
 C:\Users\Tricky\Documents\Visual Studio 2015\Projects\Tricky.StorgeHoppers\Tricky.StorgeHoppers\bin\Debug\UnityScript.Lang.dll
 C:\Users\Tricky\Documents\Visual Studio 2015\Projects\Tricky.StorgeHoppers\Tricky.StorgeHoppers\obj\Debug\plugin_Tricky.ExtraStorgeHoppers.dll
 C:\Users\Tricky\Documents\Visual Studio 2015\Projects\Tricky.StorgeHoppers\Tricky.StorgeHoppers\obj\Debug\plugin_Tricky.ExtraStorgeHoppers.pdb
+C:\Users\Tricky\Documents\Visual Studio 2015\Projects\Tricky.StorgeHoppers\Tricky.StorgeHoppers\bin\Debug\Assembly-CSharp.dll
+C:\Users\Tricky\Documents\Visual Studio 2015\Projects\Tricky.StorgeHoppers\Tricky.StorgeHoppers\bin\Debug\UnityEngine.dll

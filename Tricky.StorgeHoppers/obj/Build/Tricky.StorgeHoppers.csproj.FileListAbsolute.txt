@@ -10,3 +10,6 @@ C:\Users\Tricky\Documents\Visual Studio 2015\Projects\Tricky.StorgeHoppers\Trick
 C:\Users\Tricky\Documents\Visual Studio 2015\Projects\Tricky.StorgeHoppers\Tricky.StorgeHoppers\obj\Build\plugin_Tricky.ExtraStorgeHoppers.dll
 C:\Users\Tricky\Documents\Visual Studio 2015\Projects\Tricky.StorgeHoppers\Tricky.StorgeHoppers\bin\Build\UnityEngine.UI.dll
 C:\Users\Tricky\Documents\Visual Studio 2015\Projects\Tricky.StorgeHoppers\Tricky.StorgeHoppers\bin\Build\Machines\ExtraStorageHopper.cs
+C:\Users\Tricky\Documents\Visual Studio 2015\Projects\Tricky.StorgeHoppers\Tricky.StorgeHoppers\bin\Build\Assembly-CSharp.dll
+C:\Users\Tricky\Documents\Visual Studio 2015\Projects\Tricky.StorgeHoppers\Tricky.StorgeHoppers\bin\Build\UnityEngine.dll
+C:\Users\Tricky\Documents\Visual Studio 2015\Projects\Tricky.StorgeHoppers\Tricky.StorgeHoppers\bin\Build\UnityEngine.xml

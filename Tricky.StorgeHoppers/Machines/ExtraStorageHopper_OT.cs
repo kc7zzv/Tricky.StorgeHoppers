@@ -2382,18 +2382,18 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, ItemConsumerInterfa
         Variables.LogValue("*Reader* this.ExemplarBlockID", this.ExemplarBlockID);
         this.ExemplarBlockValue = reader.ReadUInt16();          //4
         Variables.LogValue("*Reader* this.ExemplarBlockValue", this.ExemplarBlockValue);
-        int StorageUsed = reader.ReadInt32();                   //5
-        this.mPermissions = (eHopperPermissions)reader.ReadUInt16();  //6
-        this.mbHooverOn = reader.ReadBoolean();                 //7
-        this.mrCurrentPower = reader.ReadSingle();              //8
-        this.mrCurrentTemperature = reader.ReadSingle();        //9
-        reader.ReadByte();                                      //10
-        reader.ReadByte();                                      //11       
-        reader.ReadByte();                                      //12        
-        reader.ReadInt32();                                     //13
-        reader.ReadInt32();                                     //14       
-        reader.ReadInt32();                                     //15
-        reader.ReadInt32();                                     //16
+        int StorageUsed = reader.ReadInt32();                           //5
+        this.mPermissions = (eHopperPermissions)reader.ReadUInt16();    //6
+        this.mbHooverOn = reader.ReadBoolean();                         //7
+        this.mrCurrentPower = reader.ReadSingle();                      //8
+        this.mrCurrentTemperature = reader.ReadSingle();                //9
+        reader.ReadByte();                                              //10
+        reader.ReadByte();                                              //11       
+        reader.ReadByte();                                              //12        
+        reader.ReadInt32();                                             //13
+        reader.ReadInt32();                                             //14       
+        reader.ReadInt32();                                             //15
+        reader.ReadInt32();                                             //16
         stopwatch.Stop();
         Variables.Log("[" + this.HopperName + "] Reading done in " + stopwatch.ElapsedMilliseconds + ", readerLocation = " + reader.BaseStream.Position);
 

@@ -2,6 +2,7 @@
 using UnityEngine;
 using System.IO;
 using System.Web;
+using System.Reflection;
 
 class Variables
 {
@@ -9,9 +10,9 @@ class Variables
     public static string ModVersion = "7";
     public static bool ModDebug = true;
 	//ONLY USED IF THE OLD MODLOG FOLDER EXIST, THIS FOLDER CAUSED AN ERROR.
-    public static string FCEModPathOLD = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\ProjectorGames\\FortressCraft\\Mods\\ModLog";
+    //public static string FCEModPathOLD = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\ProjectorGames\\FortressCraft\\Mods\\ModLog";
 	//THIS IS THE NEW MODLOG FOLDER, WHICH IS PLACED INSIDE THE CORRECT MOD FOLDER.
-	public static string FCEModPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\ProjectorGames\\FortressCraft\\Mods\\" + ModName + "\\" + ModVersion + "\\ModLog\\";
+	public static string FCEModPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\ModLog\\";
     public static string LogFilePath = FCEModPath + "ModLog.log";
     public static string PreString = "[" + System.DateTime.Now.Hour + ":" + System.DateTime.Now.Minute + ":" + System.DateTime.Now.Second + "." + System.DateTime.Now.Millisecond + "]";
     private static object locker = new object();
@@ -135,29 +136,36 @@ public class ExtraStorageHoppersMain : FortressCraftMod
     public ushort mHopperCubeValue;
     public TerrainDataEntry mHopperCubeEntry;
     public TerrainDataValueEntry mHopperValueEntry;
+    public string FCExmlPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\xml\\";
+    public string FCEBackup = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\Backup\\";
     //MY STUFF
+    public void CreateBackupFolder()
+    {
+        if (!Directory.Exists(FCEBackup))
+        {
+            Directory.CreateDirectory(FCEBackup);
+        }
+    }
+    //******************** Backup TerrainData and ManufacturerRecipes files ********************
+    //For people with custom hoppers
+    public void BackupFiles()
+    {
+        string FolderName = System.DateTime.Today.Month+"-"+DateTime.Today.Day+"\\";
+        string BackupTrueFolder = FCEBackup + FolderName;
+        if (!Directory.Exists(BackupTrueFolder))
+        {
+            File.Copy(FCExmlPath + "TerrainData.xml", BackupTrueFolder + "TerrainData.xml");
+            File.Copy(FCExmlPath + "ManufacturerRecipes.xml", BackupTrueFolder + "ManufacturerRecipes.xml");
+        }
+
+    }
+
+
+    //******************** UI STUFF ********************
+    public static ExtraStorageHopperWindowNew ExtraStorageHopperUI = new ExtraStorageHopperWindowNew();
 
     void Start()
     {
-        string url = "http://adf.ly/1c8Zxm";
-        string result = null;
-        try
-        {
-            System.Net.WebClient client = new System.Net.WebClient();
-            result = client.DownloadString(url);
-            //Store this result and compare it to last stored result for changes.         
-        }
-        catch (Exception ex)
-        {
-
-        }
-
-
-        //DELTES OLD LOG FOLDER
-        if (Directory.Exists(Variables.FCEModPathOLD))
-        {
-            Directory.Delete(Variables.FCEModPathOLD, true);
-        }
         //CREATES THE NEW LOG FOLDER
         if (!Directory.Exists(Variables.FCEModPath))
         {
@@ -176,9 +184,10 @@ public class ExtraStorageHoppersMain : FortressCraftMod
 
     public override ModRegistrationData Register()
     {
+        //Registers my mod, so FC knows what to load
         ModRegistrationData modRegistrationData = new ModRegistrationData();
 		modRegistrationData.RegisterEntityHandler ("Tricky.ExtraStorageHoppers");
-        UIManager.NetworkCommandFunctions.Add("ExtraStorageHopperWindow", new UIManager.HandleNetworkCommand(ExtraStorageHopperWindow.HandleNetworkCommand));
+        UIManager.NetworkCommandFunctions.Add("ExtraStorageHopperWindowNew", new UIManager.HandleNetworkCommand(ExtraStorageHopperWindowNew.HandleNetworkCommand));
         TerrainDataEntry CubeEntry;
         TerrainDataValueEntry EntryValue;
         TerrainData.GetCubeByKey("Tricky.ExtraStorageHoppers", out CubeEntry, out EntryValue);
@@ -192,7 +201,9 @@ public class ExtraStorageHoppersMain : FortressCraftMod
 
     public override void CreateSegmentEntity(ModCreateSegmentEntityParameters parameters, ModCreateSegmentEntityResults results)
     {
+        //Makes sure that all hoppers has the LogisticsHopper model
         parameters.ObjectType = SpawnableObjectEnum.LogisticsHopper;
+        //Default Custom Storage Hopper values
         ushort HopperMaxStorage = 10;
         ushort HopperColorR = 1;
         ushort HopperColorG = 2;
@@ -200,11 +211,13 @@ public class ExtraStorageHoppersMain : FortressCraftMod
         string HopperName = "NO NAME";
         bool HopperOT = false;
         Color HopperColor = new Color(1,2,3);
+        //Starts to parse the parameteres from the xml file into values
         if (parameters.Cube == mHopperCubeType)
         {
             var entry = mHopperCubeEntry.GetValue(parameters.Value);
             if (entry != null && entry.Custom != null)
             {
+                //Trys to log what the values loaded for custom hoppers are, this is to debug
                 try
                 {
                     HopperMaxStorage = Convert.ToUInt16(entry.Custom.GetValue("Tricky.MaxStorage"));
@@ -231,6 +244,7 @@ public class ExtraStorageHoppersMain : FortressCraftMod
                 }
 
             }
+            //Moves the variables into a new hopper, and uses the functions from ExtraStorageHoppers.cs 
             results.Entity = new ExtraStorageHoppers(parameters,HopperMaxStorage, HopperColor, HopperName, HopperOT);
             
         }

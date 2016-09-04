@@ -2909,6 +2909,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
         writer.Write(num2);
         writer.Write(num2);//OLD POWER SINGLE -- NOT IN USE
         writer.Write(num2);//OLD TEMP SINGLE -- NOT IN USE
+        //TODO: Needs Testing
         if (this.CubeValue == 0)
         {
             writer.Write(this.ItemsDeleted); //MOSTLY ONLY USED FOR VOID HOPPER
