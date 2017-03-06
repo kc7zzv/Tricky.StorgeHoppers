@@ -1,0 +1,16 @@
+﻿<Properties>
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.Workbench ActiveDocument="Tricky.StorgeHoppers/Machines/ExtraStorageHopper.cs">
+    <Files>
+      <File FileName="Tricky.StorgeHoppers/Main.cs" Line="1" Column="1" />
+      <File FileName="Tricky.StorgeHoppers/XML/ManufacturerRecipes.xml" Line="1" Column="1" />
+      <File FileName="Tricky.StorgeHoppers/Code/ExtraStorageHopperWindow.cs" Line="1" Column="1" />
+      <File FileName="Tricky.StorgeHoppers/Machines/ExtraStorageHopper.cs" Line="2694" Column="3" />
+      <File FileName="Tricky.StorgeHoppers/XML/TerrainData.xml" Line="1" Column="1" />
+    </Files>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+</Properties>

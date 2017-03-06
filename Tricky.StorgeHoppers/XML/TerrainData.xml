@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfTerrainDataEntry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <TerrainDataEntry>
+    <Key>Tricky.ExtraStorageHoppers</Key>
+    <Name>Extra Storage Hoppers</Name>
+    <Values>
+      <ValueEntry>
+          <Key>Tricky.MediumStorageHopper</Key>
+          <Name>Medium Storage Hopper</Name>
+          <Description>Stores 25 Items.\nAuto transfers.\nUse E to alter transfer type.</Description>
+        <IconName>Tricky.LightRed</IconName>
+      </ValueEntry>
+      <ValueEntry>
+        <Key>Tricky.SmallStorageHopper</Key>
+        <Name>Small Storage Hopper</Name>
+        <Description>Stores 10 Items.\nAuto transfers.\nUse E to alter transfer type.</Description>
+        <IconName>Tricky.LightBlue</IconName>
+      </ValueEntry>
+      <ValueEntry>
+        <Key>Tricky.VoidHopper</Key>
+        <Name>Void Hopper</Name>
+        <Description>Deletes Items!\nAuto transfers.\nUse E to alter transfer type.</Description>
+        <IconName>Tricky.Black</IconName>
+      </ValueEntry>
+      <ValueEntry>
+        <Key>Tricky.HugeStorageHopper</Key>
+        <Name>Huge Storage Hopper</Name>
+        <Description>Stores 200 Items.\nAuto transfers.\nUse E to alter transfer type</Description>
+        <IconName>Tricky.Blue</IconName>
+      </ValueEntry>
+      <ValueEntry>
+        <Key>Tricky.NanoStorageHopper</Key>
+        <Name>Nano Storage Hopper</Name>
+        <Description>Stores 1 Items.\nAuto transfers.\nUse E to alter transfer type</Description>
+        <IconName>Tricky.Red</IconName>
+      </ValueEntry>
+      <ValueEntry>
+        <Key>Tricky.75SlotStorageHopper</Key>
+        <Name>75 Slot Storage Hopper</Name>
+        <Description>Stores 75 Items.\nAuto transfers.\nUse E to alter transfer type</Description>
+        <IconName>Tricky.LightGreen</IconName>
+      </ValueEntry>
+      <ValueEntry>
+        <Key>Tricky.HalfStorageHopper</Key>
+        <Name>Half Storage Hopper</Name>
+        <Description>Stores 50 Items.\nAuto transfers.\nUse E to alter transfer type</Description>
+        <IconName>Tricky.Yellow</IconName>
+      </ValueEntry>
+      <ValueEntry>
+        <Key>Tricky.125SlotStorageHopper</Key>
+        <Name>125 Slot Storage Hopper</Name>
+        <Description>Stores 125 Items.\nAuto transfers.\nUse E to alter transfer type</Description>
+        <IconName>Tricky.Green</IconName>
+      </ValueEntry>
+      <ValueEntry>
+        <Key>Tricky.150SlotStorageHopper</Key>
+        <Name>150 Slot Storage Hopper</Name>
+        <Description>Stores 150 Items.\nAuto transfers.\nUse E to alter transfer type</Description>
+        <IconName>Tricky.Yellow</IconName>
+      </ValueEntry>
+	  <ValueEntry>
+        <Key>Tricky.2000SlotHopperx</Key>
+        <Name>2000 Slot One Type Storage Hopper</Name>
+        <Description>Stores 2000 Items of the same type.\nAuto transfers.\nUse E to alter transfer type</Description>
+        <IconName>Tricky.Yellow</IconName>
+      </ValueEntry>
+      <ValueEntry>
+        <Key>Tricky.1000SlotHopperx</Key>
+        <Name>1000 Slot One Type Storage Hopper</Name>
+        <Description>Stores 1000 Items of the same type.\nAuto transfers.\nUse E to alter transfer type</Description>
+        <IconName>Tricky.LightYellow</IconName>
+      </ValueEntry>
+      <ValueEntry>
+        <Key>Tricky.500SlotHopperx</Key>
+        <Name>500 Slot One Type Storage Hopper</Name>
+        <Description>Stores 500 Items of the same type.\nAuto transfers.\nUse E to alter transfer type</Description>
+        <IconName>LogisticsHopper</IconName>
+      </ValueEntry>
+    </Values>
+	<MaxStack>100</MaxStack>
+    <LayerType>PrimaryTerrain</LayerType>
+    <TopTexture>182</TopTexture>
+    <GUITexture>182</GUITexture>
+    <isSolid>false</isSolid>
+    <isTransparent>true</isTransparent>
+    <isHollow>false</isHollow>
+    <isGlass>false</isGlass>
+    <isPassable>false</isPassable>
+    <hasObject>true</hasObject>
+    <hasEntity>true</hasEntity>
+    <AudioWalkType>Metal</AudioWalkType>
+    <AudioBuildType>Dirt</AudioBuildType>
+    <AudioDestroyType>None</AudioDestroyType>
+  </TerrainDataEntry>
+</ArrayOfTerrainDataEntry>

@@ -3,58 +3,97 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using UnityEngine;
-using FortressCraft.Community;
 
 
-public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, StorageMachineInterface, CommunityItemInterface, StorageInventoryIterationInterface
+public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, StorageMachineInterface, StorageInventoryIterationInterface
 {
-    //MY STUFF
-    private string ModName = Variables.ModName;
-    private string ModVersion = Variables.ModVersion;
+    /*
+    Done:
+    Moved all hoppers to the API
+    Added a 100 slot hopper
+    Changed the Custom Hopper Recipe
+    Fixed Modlog (no more shit)
+    Added support for floating colors
+    Removed Custom Hopper limits. (no longer 200 for normal hoppers, neither 2000 for OT hoppers, its now unlim)
+    Hoppers no longer gets removed by SuperBuild (Im very sorry this wasent fixed earlier...)
+
+
+        
+         
+    Paste gerating hopper
+	------DONE--------
+	Void Hopper MeshText (Saves, and Loads, and counts if items are added, regardless of machine that is adding items. )
+	Debug mode (Enable and disable debug.logError, to only affect curtin hoppers, this is good for testing 1 machine in a world with many) - Should work
+	Added full debugmode and added all output errors regarding the hopper, to the ModLog! -Should work
+	Sort hoppers in ManuFactoring Plant according to Inventory Size. -Working
+	Debug mode: Print all hopper information (Position, hopper name, inventory, Exemplar, Hopper Mode, Permission, CubeValue, CubeColor, Hopper Number) - SHould work
+	Read - LogError(Read values) NOT STORAGE!
+	Write - LogError(Write values) NOT STORAGE!
+    Optimise Code
+    100% PORT OF OT HOPPERS
+	------PENDING-----
+
+	-----NOTES--------
+	Overall description:
+	Alot of work done on Void Hopper, and a custom debug mode has been implemented.
+	If a hopper is not behaving, press CTRL+SHIFT+X on a hopper to enable Debug mode. This can in some cases print new information. 
+	All beta versions will have this enabled by default, all else will have it disabled by default. 
+	Void hopper now shows how many items has been deleted/Sent to the void
+	Debug mode is now done.
+	All prep work for the new API system is done.
+	Added LastItem deleted for Void Hopper
+	Added modlog support for all errors. - This allows for alot more debugging, and indepth bug fixing.
+	Optimized code to a point where there is very littel to be done
+	*/
+
+    //MY STUFF 
+    //private string ModName = Variables.ModName; //this is just mod stuff, dont bother.
+    //private string ModVersion = Variables.ModVersion;//this is just mod stuff, dont bother.
     private string PopUpText;
     //STORAGE HOPPER STUFF
     private Segment[] CheckSegments;
-    private Segment[,,] HooverSegment;
-    public ItemBase[] maItemInventory;
-    public ushort[] maStorage;
-    public bool mbAllowLogistics;
-    private bool mbForceHoloUpdate;
-    private bool mbForceTextUpdate;
-    public bool mbHooverOn;
+    //private Segment[,,] HooverSegment; //This is apparently not in use, so no reason to have it
+    public ItemBase[] maItemInventory; //contains all the items stored in the hopper
+    public ushort[] maStorage; // contains all the cubes stored in the hopper
+    public bool mbAllowLogistics; // this should always be true, to maximize thoughput
+    private bool mbForceHoloUpdate; //This entity has a holobase. 
+    private bool mbForceTextUpdate; //This eneity shows text in one way or another. 
+    public bool mbHooverOn; //Vacuum mode
     //private bool mbLinkedToGO;
     private bool mbShowHopper;
     private GameObject mHoloStatus;
     //private ParticleSystem mHooverPart;
     //private GameObject mHopperPart;
-    public string mLastItemAdded;
+    public string mLastItemAdded; //Last item added, this is used to inform the player
     private int mnHooverEmissionRate;
     private int mnLowFrequencyUpdates;
-    private int mnMaxStorage;
+    private int mnMaxStorage; //How many slots the hopper have. 
     private int mnReadouts;
     private int mnRoundRobinOffset;
-    public int mnStorageFree;
-    public int mnStorageUsed;
+    public int mnStorageFree; //The amount of storage free in the hopper. CountFreeSlots()
+    public int mnStorageUsed; //The amount of storage used in the hopper. CountFreeSlots()
     static int[] mRemoveCache = new int[100];
     private int mnUpdates;
-    public eHopperPermissions mPermissions = eHopperPermissions.AddAndRemove;
+    public eHopperPermissions mPermissions = eHopperPermissions.AddAndRemove; //Hopper permissions.
     private eHopperPermissions mPreviousPermissions;
-    public float mrCurrentPower;
-    public float mrCurrentTemperature;
+    //public float mrCurrentPower; //This is not used for my hoppers, all are free from power.
+    //public float mrCurrentTemperature; //My hoppers are not cryo hoppers, and therefore dont use temperature
     public float mrExtractionTime;
     private float mrLogisticsDebounce;
     private float mrMaxLightDistance;
     private float mrPrevDistanceToPlayer;
     public float mrReadoutTick;
-    private float mrSpoilTimer;
+    private float mrSpoilTimer; //How much time it takes before organic items spoil. 
     private float mrTimeElapsed;
     private float mrTimeSinceLogistics;
     private float mrTimeUntilPlayerDistanceUpdate;
+    private GameObject TutorialEffect;
     bool mbLinkedToGO;
     Light WorkLight;
     TextMesh mTextMesh;
     ParticleSystem mHooverPart;
     GameObject mHopperPart;
-
+    private int mnHopperLoops = 10;
     //UI STUFF
     public static bool AllowBuilding = true;
     public static bool AllowInteracting = true;
@@ -62,112 +101,337 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
     public static bool AllowMovement = true;
     public static float ForceNGUIUpdate;
     private float mRetakeDebounce;
-    // More of my stuff
-    private ushort CubeValue;
-    private Color mCubeColor;
-    public int ItemsDeleted;
 
-    private string HopperName;
-    public eHopperMode HopperMode;
+    // More of my stuff
+    private ushort CubeValue; //This is a custom CubeValue, used to indentify the hoppers 
+                              /*
+                              *0 = Void hopper
+                                  *1 = Nano hopper
+                                  *2 = Small hopper
+                                  *3 = Medium hopper
+                                  *4 = half hopper
+                                  *5 = 75 hopper
+                                  *6 = 125 hopper
+                                  *7 = 150 hopper
+                                  *8 = Huge hopper
+                                  *9 = 500 slot OT hopper
+                                  *10 = 1000 slot OT hopper
+                                  *11 = 2000 slot OT hopper
+                                  *12 = Custom hopper
+                                  */
+    public bool ShareContent = false;
+    private Color mCubeColor; //What color the hoppers will have ingame (NOT ICON)
+    private string HopperName; //This is used for the API
+    public eHopperMode HopperMode; //Hopper Mode.
+    private bool DebugMode = false;
+    private int HopperNumber = 0;
+    public string ReadStringComplete; //This is used to print what values are read from the disk (not items)
+    public string LatestWriteComplete;//This is used to print what values are written to the disk (not items)
+    private bool mbTutorialComplete;                          //Unique Void hopper stuff
+
+
+
+    //******************** STUFF TO DO ********************
 
     //******************** EXTRA STORAGE HOPPER STUFF ********************
-    public ExtraStorageHoppers(Segment segment, long x, long y, long z, ushort cube, byte flags, ushort lValue, bool lbFromDisk) : base(eSegmentEntity.StorageHopper, SpawnableObjectEnum.LogisticsHopper, x, y, z, cube, flags, lValue, Vector3.zero, segment)
+    //******************** EXTRA STORAGE OT HOPPER STUFF ********************
+    public ExtraStorageHoppers(MachineEntityCreationParameters parameters, ushort HopperMaxStorage, Color HopperColor, string HopperName, bool HopperOT) : base(parameters)
     {
-        this.HopperName = "New Hopper";
-        this.mnMaxStorage = 200;
-        this.mrExtractionTime = 15f;
-        this.mrSpoilTimer = 30f;
-        this.mrMaxLightDistance = 32f;
-        this.mPreviousPermissions = eHopperPermissions.eNumPermissions;
-        base.mbNeedsLowFrequencyUpdate = true;
-        base.mbNeedsUnityUpdate = true;
-        this.maStorage = new ushort[this.mnMaxStorage];
+        this.mnMaxStorage = 200; //This is the base. It was so earlier that no hopper could set its storage higher.
+        this.mrExtractionTime = 15f; //Used for Regular hoppers, not mine :D
+        this.mrSpoilTimer = 30f; //How long in sec. it takes for a Organic item to spoil
+        this.mrMaxLightDistance = 32f; //How far the player needs to be away before the hopper is unloaded
+        this.mPreviousPermissions = eHopperPermissions.eNumPermissions; //This is the permission for hoppers, AddAndRemove, RemoveOnly, AddOnly and Locked
+        base.mbNeedsLowFrequencyUpdate = true; //LFU is where machines are found and item are handles along other stuff
+        base.mbNeedsUnityUpdate = true; //Handles the models, updating MeshText, Hoover Status....
+        this.DebugMode = false; //Debug mode, if a hoppers has debug=false, no error messages, that is related to this hopper will be shown.
+        this.ItemsDeleted = 0; //This is only used for the void hopper.
+        this.OT = false;
+        string key = TerrainData.GetCubeKey(parameters.Cube, parameters.Value);
+        if (HopperMaxStorage < 0)
+        {
+            HopperMaxStorage = 0;
+        }
+
+        //Void hopper. The TrashCan of fortresscraft
+        if (key == "Tricky.VoidHopper")
+        {
+            this.HopperName = "Void Hopper";
+            this.CubeValue = 0; //DONT CHANGE THIS! THIS IS VERY IMPORTANT FOR THE VOID HOPPER
+            this.mnMaxStorage = 100;
+            this.mrLogisticsDebounce = 0f;
+            this.mCubeColor = new Color(.01f, .01f, .01f); //BLACK :O
+            this.ItemsDeleted = 0;
+            this.OT = false;
+        }
+        //******************** CUSTOM HOPPERS **********************
+        else
+        {
+            //This is where custom hoppers are loaded. All custom hoppers have Cubevalue 12
+            this.HopperName = HopperName; //Name of the hopper. (Hotbar, GetPopUpText)
+            this.CubeValue = 12;
+            this.mnMaxStorage = HopperMaxStorage; //This is the amount of storage this hopper have. 
+            this.mrLogisticsDebounce = 0f; //Sets the debounce to 0... If this isn't 0, there might be something wrong
+            this.mCubeColor = HopperColor; //This sets the cubes color ingame. 
+            this.OT = HopperOT;
+        }
+        //******************** OTHER HOPPER STUFF **********************
+        this.maStorage = new ushort[this.mnMaxStorage]; //The array that contains all the items, Dont use this!
         for (int i = 0; i < this.mnMaxStorage; i++)
         {
             this.maStorage[i] = 0;
         }
-        this.maItemInventory = new ItemBase[this.mnMaxStorage];
-        string key = TerrainData.GetCubeKey(cube, lValue);
-        if (key == "Tricky.MediumStorageHopper")
-        {
-            this.HopperName = "Medium Storage Hopper";
-            this.CubeValue = 0;
-            this.mnMaxStorage = 25;
-            this.mrLogisticsDebounce = 0f;
-            this.mCubeColor = new Color(0.5f, 0.2f, 0.2f);
-
-        }
-        if (key == "Tricky.SmallStorageHopper")
-        {
-            this.HopperName = "Small Storage Hopper";
-            this.CubeValue = 1;
-            this.mnMaxStorage = 10;
-            this.mrLogisticsDebounce = 0f;
-            this.mCubeColor = new Color(0.2f, 0.2f, 0.5f);
-        }
-        if (key == "Tricky.VoidHopper")
-        {
-            this.HopperName = "Void Hopper";
-            this.CubeValue = 2;
-            this.mnMaxStorage = 100;
-            this.mrLogisticsDebounce = 0f;
-            this.mCubeColor = new Color(.01f, .01f, .01f);
-        }
-        if (key == "Tricky.HugeStorageHopper")
-        {
-            this.HopperName = "Huge Storage Hopper";
-            this.CubeValue = 3;
-            this.mnMaxStorage = 200;
-            this.mrLogisticsDebounce = 0f;
-            this.mCubeColor = new Color(0.2f, 0.2f, 1.5f);
-        }
-        if (key == "Tricky.NanoStorageHopper")
-        {
-            this.HopperName = "Nano Storage Hopper";
-            this.CubeValue = 4;
-            this.mnMaxStorage = 1;
-            this.mrLogisticsDebounce = 0f;
-            this.mCubeColor = new Color(1.2f, 0.1f, 0.1f);
-
-        }
-        if (key == "Tricky.75SlotStorageHopper")
-        {
-            this.HopperName = "75 Slot Storage Hopper";
-            this.CubeValue = 5;
-            this.mnMaxStorage = 75;
-            this.mrLogisticsDebounce = 0f;
-            this.mCubeColor = new Color(0.2f, 1.2f, 0.2f);
-        }
-        if (key == "Tricky.HalfStorageHopper")
-        {
-            this.HopperName = "Half Storage Hopper";
-            this.CubeValue = 6;
-            this.mnMaxStorage = 50;
-            this.mrLogisticsDebounce = 0f;
-            this.mCubeColor = new Color(2f, 2f, 0.5f);
-        }
-        if (key == "Tricky.125SlotStorageHopper")
-        {
-            this.HopperName = "125 Slot Storage Hopper";
-            this.CubeValue = 7;
-            this.mnMaxStorage = 125;
-            this.mrLogisticsDebounce = 0f;
-            this.mCubeColor = new Color(0.2f, 0.5f, 0.2f);
-        }
-        if (key == "Tricky.150SlotStorageHopper")
-        {
-            this.HopperName = "150 Slot Storage Hopper";
-            this.CubeValue = 8;
-            this.mnMaxStorage = 150;
-            this.mrLogisticsDebounce = 0f;
-            this.mCubeColor = new Color(2f, 2f, 0.5f);
-        }
+        this.maItemInventory = new ItemBase[this.mnMaxStorage]; //This is used now, because its safer, and contains more info about cubes and items. This is the new way of handling stuff.
         this.CountFreeSlots();
         this.CheckSegments = new Segment[6];
     }
 
+    //******************** UI Handlers ********************
+    public string GetHopperName()
+    {
+        return this.HopperName;
+    }
+    //******************** VOID HOPPER FEED HIVEMIND ********************
+    private HiveEntity mHive;
+    public bool FeedHiveMind = false;
+    private int FeedTicker = 0;
+    private bool SearchForHivemind()
+    {
+        if (CentralPowerHub.mClosestHive != null)
+        {
+            this.mHive = CentralPowerHub.mClosestHive;
+            return true;
+        }
+        return false;
+    }
+    //******************** HOPPER NUMBER ********************
+    public void IncreaseHopperNum()
+    {
+
+        SetHopperNum(GetHopperNum() + 1);
+    }
+
+    public int GetHopperNum()
+    {
+        return Variables.HopperNumber;
+    }
+
+    public void SetHopperNum(int num)
+    {
+        this.LogError("HopperNumber set/was: (" + num + "," + GetHopperNum() + ")");
+        Variables.HopperNumber = num;
+    }
+
+    public void SetHopperNumIfHigher(int num)
+    {
+        if (num > Variables.HopperNumber)
+        {
+            SetHopperNum(num);
+        }
+    }
+    //******************** OT Hopper Stuff ********************
+    public bool OT = false; //If its a OT hopper, this is true
+    public ushort ExemplarBlockID = 0; //Block id, of the cube set by OT hopper
+    public ushort ExemplarBlockValue = 0;//Block value, of the cube set by OT hopper
+    public int ExemplarItemID = -1; //Item ID of the item set by OT hopper
+    public ItemBase ExemplarItemBase; //This is not really used... But in some cases it is, its a kinda strange balance. This is only used to parse items in a specific way.
+    public string ExemplarString = "None"; //This is what the items is checked against.
+    public bool ExemplarSet = false;
+
+    public void SetExemplar(ItemBase lExemplar)
+    {
+        this.ExemplarString = ItemManager.GetItemName(lExemplar);
+        if (lExemplar.mnItemID != -1)
+        {
+            this.ExemplarItemID = lExemplar.mnItemID;
+            if (this.ExemplarItemID == 0)
+            {
+                Debug.LogError("Error, Exemplar attempted to be set, but no ItemID? " + ItemManager.GetItemName(lExemplar));
+            }
+            this.ExemplarBlockValue = 0;
+            this.ExemplarBlockID = 0;
+        }
+        else if (lExemplar.mType == ItemType.ItemCubeStack)
+        {
+            ushort CubeType;
+            ushort CubeValue;
+            TerrainData.GetCubeForName(this.ExemplarString, out CubeType, out CubeValue);
+            this.ExemplarBlockID = CubeType;
+            this.ExemplarBlockValue = CubeValue;
+            this.ExemplarItemID = -1;
+        }
+        else
+        {
+            Debug.LogWarning("Error, unable to set exemplars for type " + ItemManager.GetItemName(lExemplar));
+        }
+        this.ExemplarItemBase = lExemplar;
+        this.ExemplarSet = true;
+        this.MarkDirtyDelayed();
+    }
+
+    /// <summary>
+    /// Will check if the Itembase given, it the same as the Item set in exemplar
+    /// </summary>
+    /// <returns><c>true</c>, if they are the same, <c>false</c>if they are not</returns>
+    /// <param name="lExemplar">Item to check against</param>
+    public bool CheckExemplar(ItemBase lExemplar)
+    {
+        LogError("CheckExemplar Item was called");
+        if (this.OT == false)
+        {
+            LogError("It's not an OT hopper...");
+            return true;
+
+        }
+        if (ItemManager.GetItemName(lExemplar) == this.ExemplarString)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    public bool CheckExemplar(ushort CubeType, ushort CubeValue)
+    {
+        LogError("CheckExemplar Cube was called");
+        if (this.OT == false)
+        {
+            LogError("It's not an OT hopper...");
+            return true;
+
+        }
+        ItemBase lExemplar = new ItemCubeStack(CubeType, CubeValue, 1);
+        if (ItemManager.GetItemName(lExemplar) == this.ExemplarString)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    public void PrintExemplar()
+    {
+        LogError("Cube: (" + ExemplarBlockID + "," + ExemplarBlockValue + ")");
+        LogError("Item: (" + ExemplarItemID + ")");
+        LogError("String: (" + ExemplarString + ")");
+    }
+    //******************** DEBUG MODE HANDLER **********************
+    //This is what handles the custom debug mode, that allows for specific hopper debugging.
+    public void ToggleDebugMode()
+    {
+        DebugMode = !DebugMode;
+        if (DebugMode == true)
+        {
+            LogError("Debug Mode has been enabled for this storage hopper!");
+            LogError(GetHopperPosition());
+        }
+    }
+
+    public bool GetDebugMode()
+    {
+        return this.DebugMode;
+    }
+
+    public string GetDebugModeStr()
+    {
+        if (GetDebugMode())
+        {
+            return "True";
+        }
+        else
+        {
+            return "False";
+        }
+    }
+
+    public bool IsExemplarCube()
+    {
+        return (this.ExemplarBlockID != 0);
+    }
+    public bool IsExemplarItem()
+    {
+        return (this.ExemplarItemID != -1);
+    }
+
+
+    public bool ToggleBool(bool BoolToToggle)
+    {
+        if (BoolToToggle == false)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+
+    }
+    //******************** ShareContent Toggle ********************
+    public void ToggleShareContent()
+    {
+        this.ShareContent = ToggleBool(this.ShareContent);
+    }
+
+    //******************** Return information about hopper **********************
+    public void PrintStorageInfo()
+    {
+        LogError("Storage Used: " + this.mnStorageUsed + " / " + this.mnMaxStorage);
+        LogError("Storage Free: " + this.mnStorageFree + " / " + this.mnMaxStorage);
+    }
+
+    public string PrintBoolean(bool statement)
+    {
+        if (statement)
+        {
+            return "True";
+        }
+        else
+        {
+            return "False";
+        }
+    }
+
+    public string GetHopperPosition()
+    {
+        return "(" + (base.mnX - WorldScript.mDefaultOffset) + "," + (base.mnY - WorldScript.mDefaultOffset) + "," + (base.mnZ - WorldScript.mDefaultOffset) + ")";
+    }
+    //Print all hopper information (Position, hopper name, inventory, Exemplar, Hopper Mode, Permission, CubeValue, CubeColor, Hopper Number)
+    public void PrintAllHopperInfo()
+    {
+        Variables.PrintLine();
+        Variables.Log("Every info for a hopper was printed");
+        Variables.PrintLine();
+        LogError("Hopper POS [X,Y,Z]: " + GetHopperPosition());
+        LogError("Hopper Name: " + this.HopperName);
+        LogError("Hopper OT: " + PrintBoolean(this.OT));
+        PrintStorageInfo();
+        PrintExemplar();
+        LogError("Hopper Permission: " + this.mPermissions);
+        LogError("Hopper CubeValue: " + this.CubeValue);
+        LogError("Hopper Color: " + this.mCubeColor.ToString());
+        LogError("Hopper Number: " + this.HopperNumber);
+        Variables.PrintLine();
+    }
+
+    public void PrintLastWrite()
+    {
+        LogError(this.LatestWriteComplete);
+    }
+
+    public void PrintRead()
+    {
+        LogError(this.ReadStringComplete);
+    }
+    //******************** CHOOSE WHAT MODEL THE HOPPER HAS INGAME **********************
+
     public override void SpawnGameObject()
     {
+        this.HopperNumber = GetHopperNum();
+        IncreaseHopperNum();
         mObjectType = SpawnableObjectEnum.LogisticsHopper;
         base.SpawnGameObject();
     }
@@ -188,10 +452,14 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
         ushort SelectedBlock = WorldScript.instance.localPlayerInstance.mPlayerBlockPicker.selectBlockType;
         if ((SelectedBlock == GetCubeType("Tricky.ExtraStorageHoppers")))
         {
-
-            ExtraStorageHoppers selectedEntity = (ExtraStorageHoppers)WorldScript.instance.localPlayerInstance.mPlayerBlockPicker.selectedEntity;
+            ExtraStorageHoppers selectedEntity = this;
             if (selectedEntity != null)
             {
+
+                if (this.CubeValue == 0)
+                {
+                    VoidString = "Void Hopper\nItems Deleted: " + this.ItemsDeleted + "\nLast Item: " + selectedEntity.mLastItemAdded + "\nFeed Hive Mind (Q):" + PrintBoolean(selectedEntity.FeedHiveMind) + "\nDebugMode: " + GetDebugModeStr();
+                }
                 string lStr = string.Empty;
                 lStr = this.HopperName;
                 if (selectedEntity.mLastItemAdded != null)
@@ -199,15 +467,17 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
                     lStr = lStr + "\nLast Item : " + selectedEntity.mLastItemAdded;
                 }
                 string str2 = lStr;
-                if (this.CubeValue != 2)
+                if (this.CubeValue != 0)
                 {
-                    object[] objArray1 = new object[] { str2, "\nUsed:", selectedEntity.mnStorageUsed, ". Free:", selectedEntity.mnStorageFree, "\n(E)Toggle Lock Status : ", selectedEntity.mPermissions };
+                    object[] objArray1 = new object[] { str2, "\nUsed:", selectedEntity.mnStorageUsed, ". Free:", selectedEntity.mnStorageFree, "\n(E)Open Storage Interface" };
 
                     lStr = string.Concat(objArray1);
                     lStr = lStr + "\n(Shift+E)Toggle Vacuum Status : " + (!selectedEntity.mbHooverOn ? "Off" : "On");
                 }
                 int lnAvailable = 0;
                 ItemBase currentHotBarItemOrCubeAsItem = this.GetCurrentHotBarItemOrCubeAsItem(out lnAvailable, true);
+                //WILL NOT BE SET TO NULL, IF THERE IS NO ITEM AMOUNTw
+                ItemBase currentHotBarItemOrCubeAsItem_NN = this.GetCurrentHotBarItemOrCubeAsItem(out lnAvailable, true);
                 if (lnAvailable == 0)
                 {
                     currentHotBarItemOrCubeAsItem = null;
@@ -224,25 +494,37 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
                     {
                         amount = 10;
                     }
-                    if (Input.GetKey(KeyCode.LeftControl) && (amount > 1))
+                    else if (Input.GetKey(KeyCode.LeftControl) && (amount > 1))
                     {
                         amount = 1;
                     }
-                    if (amount > mnStorageFree)
+                    else if (amount > mnStorageFree && this.CubeValue != 0)
                     {
                         amount = mnStorageFree;
                     }
-                    int maxStackSize = ItemManager.GetMaxStackSize(currentHotBarItemOrCubeAsItem);
-                    if (amount > maxStackSize)
+                    else
                     {
-                        amount = maxStackSize;
+                        if (lnAvailable < 100)
+                        {
+                            amount = lnAvailable;
+                        }
+                        else
+                        {
+                            amount = 100;
+                        }
+
+                    }
+                    int maxStackSize = ItemManager.GetMaxStackSize(currentHotBarItemOrCubeAsItem);
+                    if (amount > selectedEntity.mnStorageFree)
+                    {
+                        amount = selectedEntity.mnStorageFree;
                     }
                     ItemManager.SetItemCount(currentHotBarItemOrCubeAsItem, amount);
-                    if (this.CubeValue == 2)
+                    if (this.CubeValue == 0)
                     {
                         if (amount != 0)
                         {
-                            lStr = lStr + "\n(T) to send " + currentHotBarItemOrCubeAsItem.GetDisplayString() + " to the void";
+                            VoidString = VoidString + "\n(T) to send " + currentHotBarItemOrCubeAsItem.GetDisplayString() + " to the void";
                         }
 
                     }
@@ -258,22 +540,58 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
                         }
                     }
                 }
-                if ((selectedEntity.mnStorageUsed > 0) && (this.CubeValue != 2))
+                if (selectedEntity.mnStorageUsed > 0)
                 {
                     lStr = lStr + "\n(Q) to retrieve contents!";
 
                 }
-                //lStr = lStr + "\n(Shift+X) Hopper Mode: " + this.GetStorageHopperMode();
+                //lStr = lStr + "\n(Shift+X) Hopper Mode: " + this.GetStorageHopperMode(); //This is no longer in use
                 if (NetworkManager.mbClientRunning)
                 {
                     lStr = lStr + "\nNetworkSync : " + selectedEntity.mrNetworkSyncTimer.ToString("F2");
                 }
+                //If its an OT hopper, show what item is set at the type
+                if (selectedEntity.OT)
+                {
+                    lStr = lStr + "\n(Shift+X)Set Storage Type : [" + (selectedEntity.ExemplarString) + "]";
+                }
+                //Add what mode Debug is set to
+                lStr = lStr + "\nDebugMode: " + GetDebugModeStr();
 
                 PopUpText = lStr;
-
+                //If its a void hopper, use a different string
+                if (selectedEntity.CubeValue == 0)
+                {
+                    PopUpText = VoidString;
+                }
+                //If debug mode is enabled, add the position of the hopper at the start of the text
+                if (GetDebugMode())
+                {
+                    PopUpText = "Hopper Number:" + selectedEntity.HopperNumber + "\n" + GetHopperPosition() + "\n" + PopUpText;
+                }
                 if (AllowMovement)
                 {
-                    if ((Input.GetButton("Extract")) && ExtraStorageHopperWindow.TakeItems(WorldScript.mLocalPlayer, selectedEntity))
+                    //SHoudl only work if its an OT hopper
+                    if (selectedEntity.OT)
+                    {
+                        if ((Input.GetButtonDown("Build Gun") && Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(KeyCode.LeftControl) && currentHotBarItemOrCubeAsItem_NN != null))
+                        {
+                            if (this.mnStorageUsed == 0)
+                            {
+                                //SetExemplar(currentHotBarItemOrCubeAsItem);
+                                ExtraStorageHopperWindowNew.SetNewExamplar(WorldScript.mLocalPlayer, selectedEntity, currentHotBarItemOrCubeAsItem_NN);
+                            }
+                            else
+                            {
+                                ExtraStorageHopperWindowNew.SetNewExamplar_Fail(WorldScript.mLocalPlayer, selectedEntity);
+                            }
+                            ForceNGUIUpdate = 0.1f;
+                            AudioHUDManager.instance.HUDIn();
+                        }
+                    }
+
+                    //KEY.Q, TAKE ITEMS, INCLUDED CUBES
+                    if ((Input.GetButton("Extract")) && selectedEntity.CubeValue != 0 && ExtraStorageHopperWindowNew.TakeItems(WorldScript.mLocalPlayer, this, null))
                     {
                         ForceNGUIUpdate = 0.1f;
                         AudioHUDManager.instance.OrePickup();
@@ -281,32 +599,65 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
                         {
                             SurvivalPlayerScript.TutorialSectionComplete();
                         }
-                        this.mRetakeDebounce = 0.5f;
-                    }
-                    if ((Input.GetButtonDown("Interact") && !Input.GetKey(KeyCode.LeftShift)) && (AllowInteracting && ExtraStorageHopperWindow.TogglePermissions(WorldScript.mLocalPlayer, selectedEntity)))
-                    {
-                        ForceNGUIUpdate = 0.1f;
-                        AudioHUDManager.instance.HUDIn();
-                        AudioSpeechManager.instance.UpdateStorageHopper(selectedEntity.mPermissions);
-                    }
-                    if ((Input.GetButtonDown("Interact") && Input.GetKey(KeyCode.LeftShift)) && (AllowInteracting && ExtraStorageHopperWindow.ToggleHoover(WorldScript.mLocalPlayer, selectedEntity)))
-                    {
-                        ForceNGUIUpdate = 0.1f;
-                        AudioHUDManager.instance.HUDIn();
-                    }
-                    if ((Input.GetButtonDown("Store") && AllowInteracting) && ((selectedEntity.mnStorageFree > 0) && (currentHotBarItemOrCubeAsItem != null)))
-                    {
-                        if (ExtraStorageHopperWindow.StoreItems(WorldScript.mLocalPlayer, selectedEntity, currentHotBarItemOrCubeAsItem))
+                        if (selectedEntity.CubeValue == 0)
                         {
-                            UnityEngine.Debug.Log("Inserted " + currentHotBarItemOrCubeAsItem);
-                            ForceNGUIUpdate = 0.1f;
-                            AudioHUDManager.instance.HUDOut();
-                            SurvivalHotBarManager.MarkAsDirty();
-                            SurvivalHotBarManager.MarkContentDirty();
+                            selectedEntity.mRetakeDebounce = 1f;
+                        }
+
+                    }
+                    if ((Input.GetButtonDown("Extract")) && selectedEntity.CubeValue == 0 && (UIManager.AllowInteracting && ExtraStorageHopperWindowNew.TakeItems(WorldScript.mLocalPlayer, selectedEntity, null)))
+                    {
+                        ForceNGUIUpdate = 0.1f;
+                        AudioHUDManager.instance.OrePickup();
+                        if (selectedEntity.CubeValue == 0)
+                        {
+                            selectedEntity.mRetakeDebounce = 1f;
+                        }
+
+                    }
+                    //UPDATE HOPPER PERMISSIONS, ADDANDREMOVE, REMOVEONLY, ADDONLY, LOCKED
+
+                    // KEY.E + KEY.SHIFT, TOGGLE HOOVER MODE (VACUUM)
+                    if ((Input.GetButtonDown("Interact") && Input.GetKey(KeyCode.LeftShift)) && (UIManager.AllowInteracting && ExtraStorageHopperWindowNew.ToggleHoover(WorldScript.mLocalPlayer, selectedEntity)))
+                    {
+                        ForceNGUIUpdate = 0.1f;
+                        AudioHUDManager.instance.HUDIn();
+                    }
+                    //CHANGE DEBUG MODE! *NEW
+                    if (((Input.GetButtonDown("Build Gun") && Input.GetKey(KeyCode.LeftShift) && Input.GetKey(KeyCode.LeftControl)) && AllowInteracting) && ((selectedEntity.mnStorageFree > 0) && (currentHotBarItemOrCubeAsItem != null)))
+                    {
+                        ExtraStorageHopperWindowNew.DebugMode(WorldScript.mLocalPlayer, selectedEntity);
+                        ForceNGUIUpdate = 0.1f;
+                        AudioHUDManager.instance.HUDIn();
+                    }
+                    // KEY.T Insert items and cubes. 
+                    if ((Input.GetButtonDown("Store") && UIManager.AllowInteracting) && ((selectedEntity.mnStorageFree > 0) && (currentHotBarItemOrCubeAsItem != null)))
+                    {
+
+                        if (this.OT && (this.ExemplarBlockID == 0 && this.ExemplarItemID == -1) && this.mnStorageUsed == 0)
+                        {
+                            ExtraStorageHopperWindowNew.SetNewExamplar(WorldScript.mLocalPlayer, selectedEntity, currentHotBarItemOrCubeAsItem);
+                        }
+                        if (ItemManager.GetItemName(currentHotBarItemOrCubeAsItem) != this.ExemplarString && this.OT)
+                        {
+                            Variables.LogError("You cannot insert this into an OT hopper, Check the Exemplar!");
                         }
                         else
                         {
-                            Variables.LogError("Failed to insert " + currentHotBarItemOrCubeAsItem);
+
+
+                            if (ExtraStorageHopperWindowNew.StoreItems(WorldScript.mLocalPlayer, selectedEntity, currentHotBarItemOrCubeAsItem))
+                            {
+                                UnityEngine.Debug.Log("Inserted " + currentHotBarItemOrCubeAsItem);
+                                ForceNGUIUpdate = 0.1f;
+                                AudioHUDManager.instance.HUDOut();
+                                SurvivalHotBarManager.MarkAsDirty();
+                                SurvivalHotBarManager.MarkContentDirty();
+                            }
+                            else
+                            {
+                                Variables.LogError("Failed to insert " + currentHotBarItemOrCubeAsItem);
+                            }
                         }
                     }
                 }
@@ -323,6 +674,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
     public override void LowFrequencyUpdate()
     {
         //-------------------------------------------------------------
+        //HFCHECKER - CUSTOM EXTRASTORAGEHOPPERCODE, THIS IS WHAT MAKES MY HOPPERS FASTER... along other things :P 
         long mnX1 = base.mnX;
         long mnY1 = base.mnY;
         long mnZ1 = base.mnZ;
@@ -379,14 +731,14 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
         }
 
         mnLowFrequencyUpdates++;
-
+        //These are not used... My hoppers should not use the vacuum function
         //UpdateHoover();
 
         //UpdatePoweredHopper();//Keep the client sim in step
-
-        if (WorldScript.mbIsServer == true)//this is done by the server
+        //This means that if its a server, the client is not responsible for spoiling stuff
+        if (WorldScript.mbIsServer)
         {
-            UpdateSpoilage();
+            this.UpdateSpoilage();
         }
 
         /*mrCurrentPower += mrIsotopeRate * GameManager.mrPreviousUpdateTimeStep;
@@ -398,17 +750,6 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
         //	Debug.Log(mrReadoutTick+"::" + GameManager.mrPreviousUpdateTimeStep.ToString("F2"));
         if (mrReadoutTick < 0.0f)
         {
-
-            //In museum mode, we continually empty out slots, just in case;this is hooked up to the 1 second readout tick 
-            //Which is actually the tick where we look for places to hand out stuff. 
-#if MUSEUM
-	//	public ItemBase[] maItemInventory;
-		maItemInventory[0] = null;
-		maStorage[99] = eCubeTypes.NULL;//this allows it to fill up first
-		CountFreeSlots();
-#endif
-
-
             mrReadoutTick = 1.0f;
             mnReadouts++;
 
@@ -468,6 +809,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
 
     public override void OnDelete()
     {
+        Variables.Log(this.HopperName + " Was deleted at " + GetHopperPosition());
         if (WorldScript.mbIsServer)
         {
             System.Random random = new System.Random();
@@ -508,25 +850,26 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
         this.mHooverPart = null;
         this.mTextMesh = null;
         this.mHopperPart = null;
+        this.DropGameObject(); //TEST TO SEE IF IT IMPROVES GPU USAGE
     }
 
     public override void UnityUpdate()
     {
-        //------------------------------------
         this.mrTimeElapsed += Time.deltaTime;
         if (!this.mbLinkedToGO)
         {
             this.LinkToGO();
+            return;
         }
-        else
+        if (!this.mbWellBehindPlayer)
         {
-            if (!base.mbWellBehindPlayer && !base.mSegment.mbOutOfView)
+            if (!this.mSegment.mbOutOfView)
             {
-                if ((base.mDistanceToPlayer <= 8f) && (this.mrPrevDistanceToPlayer > 8f))
+                if (this.mDistanceToPlayer <= 8f && this.mrPrevDistanceToPlayer > 8f)
                 {
                     this.mbForceHoloUpdate = true;
                 }
-                if ((base.mDistanceToPlayer > 8f) && (this.mrPrevDistanceToPlayer <= 8f))
+                if (this.mDistanceToPlayer > 8f && this.mrPrevDistanceToPlayer <= 8f)
                 {
                     this.mbForceHoloUpdate = true;
                 }
@@ -539,10 +882,10 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
                     this.UpdateMeshText();
                 }
             }
-            this.mnUpdates++;
-            this.UpdateLOD();
-            this.UpdateWorkLight();
         }
+        this.mnUpdates++;
+        this.UpdateLOD();
+        this.UpdateWorkLight();
     }
 
     //******************** HANDLE MODELS ********************
@@ -672,28 +1015,28 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
                 WorkLight.enabled = true;
                 WorkLight.range = 0.05f;//fade up, don't just appear.(this is the minimum not to get immediately turned off)
             }
-                //Not a Cryo hopper, simply show full/empty as green/red
-                if (mnStorageUsed == 0)
+            //Not a Cryo hopper, simply show full/empty as green/red
+            if (mnStorageUsed == 0)
+            {
+                WorkLight.color = Color.Lerp(WorkLight.color, Color.green, Time.deltaTime);//1 second to smoothly lerp? Maybe?
+                WorkLight.range += 0.1f;
+            }
+            else
+            {
+                if (mnStorageFree == 0)
                 {
-                    WorkLight.color = Color.Lerp(WorkLight.color, Color.green, Time.deltaTime);//1 second to smoothly lerp? Maybe?
+                    WorkLight.color = Color.Lerp(WorkLight.color, Color.red, Time.deltaTime);//1 second to smoothly lerp? Maybe?	
                     WorkLight.range += 0.1f;
+
                 }
                 else
                 {
-                    if (mnStorageFree == 0)
-                    {
-                        WorkLight.color = Color.Lerp(WorkLight.color, Color.red, Time.deltaTime);//1 second to smoothly lerp? Maybe?	
-                        WorkLight.range += 0.1f;
-
-                    }
-                    else
-                    {
-                        //this should probably actually be lbLightShouldBeEnabled = false
-                        WorkLight.color = Color.Lerp(WorkLight.color, Color.cyan, Time.deltaTime);//1 second to smoothly lerp? Maybe?
-                        WorkLight.range -= 0.1f;//That's ok, you're working nicely, don't need to indicate
-                    }
+                    //this should probably actually be lbLightShouldBeEnabled = false
+                    WorkLight.color = Color.Lerp(WorkLight.color, Color.cyan, Time.deltaTime);//1 second to smoothly lerp? Maybe?
+                    WorkLight.range -= 0.1f;//That's ok, you're working nicely, don't need to indicate
                 }
-            
+            }
+
 
             if (WorkLight.range > 1.0f) WorkLight.range = 1.0f;//this is automatically reduced to 95% a bit below here, so it's technically oscillating a bit
         }
@@ -746,7 +1089,13 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
 
     void UpdateMeshText()
     {
-        if (mTextMesh.GetComponent<Renderer>().enabled && mDistanceToPlayer < 12)//we can see text up to 24m right now, but there's little point, it's not readable
+        if (mTextMesh.GetComponent<Renderer>().enabled && mDistanceToPlayer < 12 && this.CubeValue == 0)
+        {
+
+            mTextMesh.text = "Void Hopper\nDeleted: " + ItemsDeleted + "\n[" + mLastItemAdded + "]";
+            mbForceTextUpdate = false;
+        }
+        else if (mTextMesh.GetComponent<Renderer>().enabled && mDistanceToPlayer < 12)//we can see text up to 24m right now, but there's little point, it's not readable
         {
             string lText = mPermissions.ToString() + "\n";
 
@@ -775,11 +1124,11 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
         }
         else
         {
-            if (mWrapper.mGameObjectList == null) Debug.LogError("Ore Extractor missing game object #0?");
-            if (mWrapper.mGameObjectList[0].gameObject == null) Debug.LogError("Ore Extractor missing game object #0 (GO)?");
+            if (mWrapper.mGameObjectList == null) LogError("Ore Extractor missing game object #0?");
+            if (mWrapper.mGameObjectList[0].gameObject == null) LogError("Ore Extractor missing game object #0 (GO)?");
             //WorkLight = mWrapper.mGameObjectList[0].gameObject.GetComponentInChildren<Light>();
             WorkLight = mWrapper.mGameObjectList[0].transform.Search("HooverGraphic").GetComponent<Light>();
-            if (WorkLight == null) Debug.LogError("Storage Hopper has missing light?");
+            if (WorkLight == null) LogError("Storage Hopper has missing light?");
             //if (QualitySettings.GetQualityLevel() >=3) WorkLight.shadows = LightShadows.Hard;//Object casts shadows and we're inside the object. Sad times.
 
             mHooverPart = mWrapper.mGameObjectList[0].transform.Search("HooverGraphic").GetComponent<ParticleSystem>();
@@ -803,19 +1152,37 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
             //mHoloMPB = new MaterialPropertyBlock();
             // COLOR STORAGE HOPPER
 
-            MeshRenderer lRenderer = this.mHopperPart.GetComponent<MeshRenderer>();
             MeshRenderer Render2 = this.mHopperPart.GetComponent<MeshRenderer>();
             Render2.material.SetColor("_Color", this.mCubeColor);
         }
+    }
+
+    //******************** CUSTMO DEBUG MODE ********************
+    //Only log error, if debug is enabled!
+    public void LogError(string Error)
+    {
+        if (this.GetDebugMode())
+        {
+            LogError_AW(Error);
+        }
+    }
+    //Allways logs an error, regardless of debugmode
+    public static void LogError_AW(string Error)
+    {
+        Debug.LogError(Error);
+        Variables.LogError(Error);
     }
 
     public override void DropGameObject()
     {
         base.DropGameObject();
         mbLinkedToGO = false;
+        UnityEngine.Object.Destroy(this.TutorialEffect);
     }
-    //******************** FILL/EMPTY HOPPER MODE **********************
 
+    //******************** FILL/EMPTY HOPPER MODE **********************
+    //NO LONGER IN USE...
+    //Brilliant function though...
     public void ToggleStorageHopperMode()
     {
         this.HopperMode += 1;
@@ -845,7 +1212,8 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
         {
             return "Fill hoppers";
         }
-        else {
+        else
+        {
             return "";
         }
     }
@@ -854,6 +1222,11 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
 
     public void HFChecker(int index, long x, long y, long z)
     {
+        if (this.mnStorageFree > this.mnMaxStorage)
+        {
+            this.RemoveFirstInventoryItem();
+        }
+
         try
         {
             if (this.CheckSegments[index] == null)
@@ -866,18 +1239,20 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
             }
             else
             {
+                ushort cube = this.CheckSegments[index].GetCube(x, y, z);
                 ushort lType = this.CheckSegments[index].GetCube(x, y, z);
                 if (CubeHelper.HasEntity(lType))
                 {
-                    if (this.mnStorageFree > 0)
-                    {
-                        this.HFCheckSuppliers(this.CheckSegments[index], lType, x, y, z);
-                    }
                     if (this.mnStorageUsed > 0)
                     {
                         this.HFCheckConsumers(this.CheckSegments[index], lType, x, y, z);
                     }
                 }
+                if (this.ShareContent)
+                {
+                    this.CheckHoppers(x, y, z, this.CheckSegments[index], cube);
+                }
+
             }
         }
         catch (Exception)
@@ -888,160 +1263,87 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
 
     }
 
+    //HFCheckConsumers is still here, this is the main part that makes my hoppers fast.
+
     private void HFCheckConsumers(Segment checkSegment, ushort lCube, long checkX, long checkY, long checkZ)
     {
         if (this.mPermissions == eHopperPermissions.Locked)
         {
             return;
         }
-        StorageConsumerInterface storageConsumerInterface = checkSegment.SearchEntity(checkX, checkY, checkZ) as StorageConsumerInterface;
-        if (storageConsumerInterface != null)
-        {
-            storageConsumerInterface.ProcessStorageConsumer(this);
-        }
-        if ((lCube == 513) && WorldScript.mbIsServer)
+        if ((lCube == 513) && WorldScript.mbIsServer && this.mnStorageUsed > 0)
         {
             ConveyorEntity Conveyor = checkSegment.FetchEntity(eSegmentEntity.Conveyor, checkX, checkY, checkZ) as ConveyorEntity;
             Vector3 lVTT = new Vector3(mnX - Conveyor.mnX, mnY - Conveyor.mnY, mnZ - Conveyor.mnZ);
             float lrDot = Vector3.Dot(lVTT, Conveyor.mForwards);
             //Cubes
-            if ((Conveyor != null) && Conveyor.mbReadyToConvey && (lrDot != 1) && (!Conveyor.IsCarryingCargo()) && (Conveyor.mValue != 12))
+            //IF its carring a cube, and is not a ACF, and is NOT pointing at the hopper.
+
+            //LogError("lrDot: ("+lrDot+")");
+            //LogError ("At Hopper: (" + PrintBoolean((lrDot == 1)) + ")");//Returns true if the conveyor is pointing at the hopper
+            bool Ready = (Conveyor.mbReadyToConvey && lrDot != 1 && Conveyor != null && this.mnStorageUsed > 0);
+            if (!Ready)
             {
-                if (this.mnStorageUsed > 0)
-                {
-                    ushort cube;
-                    ushort value;
-                    int requestType = (int)Conveyor.meRequestType;
-                    if (Conveyor.mValue == 1)
-                    {
-                        Variables.PrintLine();
-                        Variables.LogValue("Conveyor.meRequestType", Conveyor.meRequestType);
-                        Variables.LogValue("requestType", requestType);
-                        Variables.PrintLine();
-                    }
-                    this.GetSpecificCubeRoundRobin((ExtraStorageHoppers.eRequestType)Conveyor.meRequestType, out cube, out value);
-
-                    if (cube != 0)
-                    {
-                        Conveyor.AddCube(cube, value, 1f);
-                        this.CountFreeSlots();
-                        this.MarkDirtyDelayed();
-                        return;
-                    }
-
-                }
+                return;
             }
-            else if ((Conveyor != null) && Conveyor.mbReadyToConvey && (lrDot != 1) && (!Conveyor.IsCarryingCargo()) && (Conveyor.mValue == 12) && (this.CountHowManyOfType(Conveyor.ExemplarBlockID, Conveyor.ExemplarBlockValue) > 0))
+            bool ReadyExemplar = (Conveyor.ExemplarBlockID != 0 || Conveyor.ExemplarItemID != -1);
+            //IF ITS EVERYTHING EXECPT AN ADVANCED CONVEYOR FILTER
+            //THIS ALSO HANDLES STAMPER AND SO ON
+            if (Conveyor.mValue != 12)
             {
-
-                if (this.mnStorageUsed > 0)
+                ItemBase litem = this.RemoveSingleSpecificItemOrCubeRoundRobin((ExtraStorageHoppers.eRequestType)Conveyor.meRequestType);
+                if (litem != null)
                 {
-                    if (Conveyor.ExemplarBlockID != 0)
-                    {
-                        ItemCubeStack lItem = ItemManager.SpawnCubeStack(Conveyor.ExemplarBlockID, Conveyor.ExemplarBlockValue, 1);
-                        Conveyor.AddItem(this.RemoveSingleSpecificCubeStack(lItem, Conveyor.mbInvertExemplar));
-                        //Conveyor.AddCube(Conveyor.ExemplarBlockID, Conveyor.ExemplarBlockValue, 1f);
-                        this.CountFreeSlots();
-
-                        this.MarkDirtyDelayed();
-                        return;
-                    }
-
-                }
-            }
-            if ((Conveyor != null) && Conveyor.mbReadyToConvey && (lrDot != 1) && (!Conveyor.IsCarryingCargo()) && (Conveyor.mValue != 12) && (this.mnStorageUsed > 0))
-            {
-                ItemBase item = this.RemoveSingleSpecificItemOrCubeRoundRobin((ExtraStorageHoppers.eRequestType)Conveyor.meRequestType);
-                if (item != null)
-                {
-                    Conveyor.AddItem(item);
-                    this.CountFreeSlots();
-                    this.MarkDirtyDelayed();
-                }
-            }
-            else if ((Conveyor != null) && (Conveyor.mbReadyToConvey) && (lrDot != 1) && (!Conveyor.IsCarryingCargo()) && (Conveyor.mValue == 12) && (this.mnStorageUsed > 0) && (Conveyor.ExemplarItemID != -1) && (this.CountHowManyOfType(Conveyor.ExemplarBlockID, Conveyor.ExemplarBlockValue) > 0))
-            {
-                ItemBase item = this.RemoveSingleSpecificItemByID(Conveyor.ExemplarItemID, Conveyor.mbInvertExemplar);
-                if (item != null)
-                {
-                    Conveyor.AddItem(item);
-                    this.CountFreeSlots();
-                    this.MarkDirtyDelayed();
-                }
-
-            }
-        }
-
-    }
-
-    private void HFCheckSuppliers(Segment checkSegment, ushort lCube, long checkX, long checkY, long checkZ)
-    {
-        if (this.mPermissions == eHopperPermissions.Locked)
-        {
-            return;
-        }
-        if (this.mnStorageFree <= 0)
-        {
-            return;
-        }
-        if (this.mPermissions != eHopperPermissions.Locked)
-        {
-            //Conveyors
-            if ((lCube == 513) && (this.mnStorageFree > 0))
-            {
-                ConveyorEntity Conveyor = checkSegment.FetchEntity(eSegmentEntity.Conveyor, checkX, checkY, checkZ) as ConveyorEntity;
-                Vector3 lVTT = new Vector3(mnX - Conveyor.mnX, mnY - Conveyor.mnY, mnZ - Conveyor.mnZ);
-                float lrDot = Vector3.Dot(lVTT, Conveyor.mForwards);
-                //Variables.LogValue("Conveyor.mrCarryTimer", Conveyor.mrCarryTimer);
-                if ((Conveyor != null) && (Conveyor.IsCarryingCargo()) && (lrDot == 1) && (this.mnStorageFree > 0))
-                {
-                    if ((Conveyor.mCarriedCube != 0) && (Conveyor.mbConveyorBlocked) && (Conveyor.mValue == 8 || Conveyor.mValue == 9 || Conveyor.mValue == 6 || Conveyor.mValue == 5 || Conveyor.mValue == 4))
-                    {
-                        if (this.CubeValue != 2)
-                        {
-                            this.AddCube(Conveyor.mCarriedCube, Conveyor.mCarriedValue);
-                        }
-                        Conveyor.RemoveCube();
-                        Conveyor.FinaliseOffloadingCargo();
-                        Conveyor.MarkDirtyDelayed();
-                    }
-                    else if ((Conveyor.mCarriedItem != null) && (Conveyor.mbConveyorBlocked) && (Conveyor.mValue == 8 || Conveyor.mValue == 9 || Conveyor.mValue == 6 || Conveyor.mValue == 5 || Conveyor.mValue == 4))
-                    {
-                        if (this.CubeValue != 2)
-                        {
-                            this.AddItem(Conveyor.mCarriedItem);
-                        }
-                        Conveyor.RemoveItem();
-                        Conveyor.FinaliseOffloadingCargo();
-                        Conveyor.MarkDirtyDelayed();
-                    }
-                    else if ((Conveyor.mCarriedCube != 0) && (Conveyor.mrCarryTimer != 0f || Conveyor.mbConveyorBlocked) && !(Conveyor.mValue == 8 || Conveyor.mValue == 9 || Conveyor.mValue == 6 || Conveyor.mValue == 5 || Conveyor.mValue == 4))
-                    {
-                        if (this.CubeValue != 2)
-                        {
-                            this.AddCube(Conveyor.mCarriedCube, Conveyor.mCarriedValue);
-                        }
-                        Conveyor.RemoveCube();
-                        Conveyor.FinaliseOffloadingCargo();
-                        Conveyor.MarkDirtyDelayed();
-                    }
-                    else if ((Conveyor.mCarriedItem != null) && (Conveyor.mrCarryTimer != 0f || Conveyor.mbConveyorBlocked) && !(Conveyor.mValue == 8 || Conveyor.mValue == 9 || Conveyor.mValue == 6 || Conveyor.mValue == 5 || Conveyor.mValue == 4))
-                    {
-                        if (this.CubeValue != 2)
-                        {
-                            this.AddItem(Conveyor.mCarriedItem);
-                        }
-                        Conveyor.RemoveItem();
-                        Conveyor.FinaliseOffloadingCargo();
-                        Conveyor.MarkDirtyDelayed();
-                    }
+                    Conveyor.AddItem(litem);
                     this.CountFreeSlots();
                     this.MarkDirtyDelayed();
                     return;
                 }
+
+
+            }
+            //IF ITS A ADVANCED CONVEYOR FILTER
+            else if (Conveyor.mValue == 12)
+            {
+                if (Conveyor.ExemplarItemID != -1 && ReadyExemplar)
+                {
+                    ItemBase litem = this.RemoveSingleSpecificItemByID(Conveyor.ExemplarItemID, Conveyor.mbInvertExemplar);
+                    if (litem != null)
+                    {
+                        Conveyor.AddItem(litem);
+                        this.CountFreeSlots();
+                        this.MarkDirtyDelayed();
+                        return;
+                    }
+
+                }
+                else if (Conveyor.ExemplarBlockID != 0 && ReadyExemplar)
+                {
+                    ItemBase lcube = this.RemoveSingleSpecificCubeStack(new ItemCubeStack(Conveyor.ExemplarBlockID, Conveyor.ExemplarBlockValue, 1), Conveyor.mbInvertExemplar);
+                    if (lcube != null)
+                    {
+                        Conveyor.AddItem(lcube);
+                        this.CountFreeSlots();
+                        this.MarkDirtyDelayed();
+                        return;
+                    }
+                }
             }
         }
+
+        StorageConsumerInterface storageConsumerInterface = checkSegment.SearchEntity(checkX, checkY, checkZ) as StorageConsumerInterface;
+        if (storageConsumerInterface != null)
+        {
+            storageConsumerInterface.ProcessStorageConsumer(this);
+        }
+
+
     }
+
+    //No reason to do faster supplying, its already as fast as it gets without skipping conveyors.
+    //This is part of the optimise. The machine having items will now add them to the hopper.
+    //The hopper will no longer take the item from the entity and then add it to the hopper.
+    //This means work will only be done, IF a machine is offloading to the hopper. GOOD
 
     //******************** PRIVATE TO PUBLIC **********************
 
@@ -1105,12 +1407,12 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
             {
                 return ItemManager.SpawnItem(currentHotBarEntry.itemType);
             }
-            UnityEngine.Debug.LogError("No cube and no item in hotbar?");
+            LogError_AW("No cube and no item in hotbar?");
         }
         return null;
     }
 
-    //******************** GET AND GIVE ITEMS **********************
+    //******************** GET AND GIVE ITEMS (OLD METHOD)**********************
 
     private void CheckSuppliers(Segment checkSegment, ushort lCube, long checkX, long checkY, long checkZ)
     {
@@ -1140,19 +1442,110 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
         {
             storageConsumerInterface.ProcessStorageConsumer(this);
         }
+        if (lCube == 590)
+        {
+            GeothermalGenerator geothermalGenerator = checkSegment.FetchEntity(eSegmentEntity.GeothermalGenerator, checkX, checkY, checkZ) as GeothermalGenerator;
+            if (geothermalGenerator != null)
+            {
+                if (geothermalGenerator.mLinkedCenter != null)
+                {
+                    geothermalGenerator = geothermalGenerator.mLinkedCenter;
+                }
+                //geothermalGenerator.CheckHopper(this);
+            }
+        }
+    }
+
+    private void CheckHoppers(long checkX, long checkY, long checkZ, Segment checkSegment, ushort lCube)
+    {
+        if (this.mPermissions == eHopperPermissions.Locked)
+        {
+            return;
+        }
+        if (this.mnStorageUsed <= 2)
+        {
+            return;
+        }
+        if (CubeHelper.HasEntity((int)lCube))
+        {
+            StorageMachineInterface storageMachineInterface = checkSegment.SearchEntity(checkX, checkY, checkZ) as StorageMachineInterface;
+            if (storageMachineInterface != null)
+            {
+                for (int i = 0; i < 10; i++)
+                {
+                    eHopperPermissions permissions = storageMachineInterface.GetPermissions();
+                    if (permissions == eHopperPermissions.Locked)
+                    {
+                        return;
+                    }
+                    double StorageMachineStorage = ((double)storageMachineInterface.UsedCapacity / (double)storageMachineInterface.TotalCapacity) * 100;
+                    double SourceMachineStorage = ((double)this.mnStorageUsed / (double)this.mnMaxStorage) * 100;
+                    //If i have more items then the distination hopper, ill give items
+                    if (StorageMachineStorage < SourceMachineStorage)
+                    {
+                        ItemBase Item = this.RemoveSingleSpecificItemOrCubeRoundRobin(eRequestType.eAny);
+                        //if the hopper dont want it, ill take it back
+                        if (!storageMachineInterface.TryInsert(this, Item))
+                        {
+                            this.AddItem(Item);
+                        }
+                    }
+                    //If Distination hopper has more item percent wise then me, ill take items!
+                    ItemBase Item2;
+
+                    if (StorageMachineStorage > SourceMachineStorage)
+                    {
+                        storageMachineInterface.TryExtractAny(this, 1, out Item2);
+                        //if i can store the item, ill keep it
+                        if (!this.AddItem(Item2))
+                        //if not, ill give it back.
+                        {
+                            storageMachineInterface.TryInsert(this, Item2);
+                        }
+
+                    }
+                }
+            }
+        }
     }
 
     //******************** ADD ITEMS AND CUBES **********************
+    private int ItemsDeleted; //This is only used for the Void Hopper, as part of the new MeshText
+
+    private string VoidString; //This is only used for the Void hopper, GetPopUpText()
 
     public void AddCube(ushort lType, ushort lValue)
     {
+        //If its a Void Hopper (CubeValue = 0) and feed HiveMind is enabled, then this is what feeds the hivemind
+        if (this.GetCubeValue() == 0)
+        {
+            Variables.LogPlain("Void hopper got cube!");
+            Variables.LogValue("FeedHiveMind", this.FeedHiveMind);
+            Variables.LogValue("SearchForHivemind", this.SearchForHivemind());
+            if (this.FeedHiveMind && this.SearchForHivemind())
+            {
+                Variables.LogPlain("Feeding hivemind");
+                Variables.LogValue("FeedTicker", this.FeedTicker);
+                this.FeedTicker += 1;
+                if (this.FeedTicker > 5)
+                {
+                    this.FeedTicker = 0;
+                    this.mHive.AddCube(lType, lValue);
+                }
+            }
+            this.mLastItemAdded = TerrainData.GetNameForValue(lType, lValue);
+            this.ItemsDeleted += 1;
+            this.mbForceTextUpdate = true;
+            return;
+        }
+
         if (lType == 0)
         {
-            Debug.LogError("Who and why is someone adding NULL to a Storage Hopper?");
+            LogError("Who and why is someone adding NULL to a Storage Hopper?");
         }
         if (this.mnStorageFree <= 0)
         {
-            Debug.LogError("Error, can't AddCube " + lType + " to hopper, it's full!");
+            LogError("Error, can't AddCube " + lType + " to hopper, it's full!");
         }
         else
         {
@@ -1181,7 +1574,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
                     ItemCubeStack stack = base2 as ItemCubeStack;
                     if (stack == null)
                     {
-                        Debug.LogError(string.Concat(new object[] { "Error, failed to convert item into ItemCubeStack", base2.mType, ":", base2.mnItemID }));
+                        LogError_AW(string.Concat(new object[] { "Error, failed to convert item into ItemCubeStack", base2.mType, ":", base2.mnItemID }));
                         return;
                     }
                     if ((stack.mCubeType == lType) && (stack.mCubeValue == lValue))
@@ -1191,7 +1584,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
                         {
                             if (lType >= TerrainData.mEntries.Length)
                             {
-                                Debug.LogError(string.Concat(new object[] { "Error, AddCube tried to get terrain data entry for", lType, " but max was only ", TerrainData.mEntries.Length }));
+                                LogError_AW(string.Concat(new object[] { "Error, AddCube tried to get terrain data entry for", lType, " but max was only ", TerrainData.mEntries.Length }));
                                 this.mLastItemAdded = "ERROR Unknown cube[" + lType + "] added";
                             }
                             else
@@ -1232,11 +1625,44 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
 
     public bool AddItem(ItemBase lItemToAdd)
     {
+        //This should be the first to happen. This ensures that NULL items wont be added to the void hopper, since this would create an error. If its null, just return true.
         if (lItemToAdd == null)
         {
             return true;
         }
         this.CountFreeSlots();
+        //If its a Void Hopper (CubeValue = 0) and feed HiveMind is enabled, then this is what feeds the hivemind
+        if (this.GetCubeValue() == 0)
+        {
+            Variables.LogPlain("Void hopper got item!");
+            Variables.LogValue("FeedHiveMind", this.FeedHiveMind);
+            Variables.LogValue("SearchForHivemind", this.SearchForHivemind());
+            if (this.FeedHiveMind && this.SearchForHivemind())
+            {
+                Variables.LogPlain("Feeding hivemind");
+                Variables.LogValue("FeedTicker", this.FeedTicker);
+                //This ensures if you insert a stack of items, every single one will count as an item added, not a hole stack as one item...
+                Variables.LogValue("ItemManager.GetCurrentStackSize(lItemToAdd)", ItemManager.GetCurrentStackSize(lItemToAdd));
+                for (int count = ItemManager.GetCurrentStackSize(lItemToAdd); count > 0; count--)
+                {
+                    Variables.LogValue("count", count);
+                    this.FeedTicker += 1;
+                    Variables.LogValue("this.FeedTicker", this.FeedTicker);
+                    if (this.FeedTicker > 5)
+                    {
+                        this.FeedTicker = 0;
+                        this.mHive.AddItem(lItemToAdd);
+                    }
+                }
+            }
+            //This was broken, but now adds to correct amount everytime you insert stuff into the void hopper
+            this.mLastItemAdded = ItemManager.GetItemName(lItemToAdd);
+            this.ItemsDeleted += ItemManager.GetCurrentStackSize(lItemToAdd);
+            this.mbForceTextUpdate = true;
+            return true;
+        }
+        //If its not a void hopper, and the item is not null, check if there is storage left.
+        //If there is storage free, insert the item into the hopper. THis is very usefull, because without it, it would be impossible to store anything in the hoppers.
         if (this.mnStorageFree > 0)
         {
             if (ItemManager.GetCurrentStackSize(lItemToAdd) > this.mnStorageFree)
@@ -1245,7 +1671,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
             }
             if ((lItemToAdd.mType == ItemType.ItemStack) && ((lItemToAdd as ItemStack).mnAmount == 0))
             {
-                Debug.LogError("Error, attempting to add an ItemStack of ZERO to the SH?![" + ItemManager.GetItemName(lItemToAdd) + "]");
+                LogError_AW("Error, attempting to add an ItemStack of ZERO to the SH?![" + ItemManager.GetItemName(lItemToAdd) + "]");
                 return false;
             }
             for (int i = 0; i < this.mnMaxStorage; i++)
@@ -1371,7 +1797,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
     {
         if (this.mnStorageUsed == 0)
         {
-            Debug.LogError("Attempted to remove item but hopper was empty - are you dumb?");
+            LogError_AW("Attempted to remove item but hopper was empty - are you dumb?");
         }
         for (int i = 0; i < this.mnMaxStorage; i++)
         {
@@ -1543,7 +1969,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
             {
                 if (base2.mType == ItemType.ItemCubeStack)
                 {
-                    Debug.LogError("Errror, RemoveInventoryItem does not support cubestacks");
+                    LogError_AW("Errror, RemoveInventoryItem does not support cubestacks");
                 }
                 if (base2.mType == ItemType.ItemStack)
                 {
@@ -1587,7 +2013,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
     {
         if (lItem == null)
         {
-            Debug.LogError("There's probably a good reason why RemoveSingleSpecificCubeStack is looking for a null Item");
+            LogError_AW("There's probably a good reason why RemoveSingleSpecificCubeStack is looking for a null Item");
             return null;
         }
         if (this.mnStorageUsed != 0)
@@ -1672,7 +2098,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
     {
         if (lnItemID == -1)
         {
-            Debug.LogError("There's probably a good reason why RemoveSingleSpecificItemByID is looking for ItemID -1");
+            LogError_AW("There's probably a good reason why RemoveSingleSpecificItemByID is looking for ItemID -1");
             return null;
         }
         if (this.mnStorageUsed != 0)
@@ -1910,11 +2336,11 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
                     return data.CraftableItemType;
                 }
             }
-            Debug.LogError("Error, unable to locate ItemID for Bar from type " + lType);
+            LogError_AW("Error, unable to locate ItemID for Bar from type " + lType);
         }
         else
         {
-            Debug.LogError("Error, recipes for smelter were not found. Note this can happen in editor when opening the handbook.");
+            LogError_AW("Error, recipes for smelter were not found. Note this can happen in editor when opening the handbook.");
         }
         return ItemEntry.GetIDFromName("Copper Bar", true);
     }
@@ -1979,12 +2405,12 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
             ItemCubeStack stack = this.maItemInventory[j] as ItemCubeStack;
             if (stack == null)
             {
-                Debug.LogError("Error stack was null in Contains Ore?");
+                LogError_AW("Error stack was null in Contains Ore?");
                 continue;
             }
             if (WorldScript.mLocalPlayer.mResearch == null)
             {
-                Debug.LogError("mResearch stack was null in Contains Ore?");
+                LogError_AW("mResearch stack was null in Contains Ore?");
                 continue;
             }
             if ((stack.mnItemID != lBestChoice) && CubeHelper.IsIngottableOre(stack.mCubeType))
@@ -2056,7 +2482,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
         }
         if (this.mnStorageUsed > this.mnMaxStorage)
         {
-            Debug.LogError(string.Concat(new object[] { "Storage hopper has overflowed! ", this.mnStorageUsed, "/", this.mnMaxStorage, ".", Environment.StackTrace, "Last Item was ", this.mLastItemAdded }));
+            LogError_AW(string.Concat(new object[] { "Storage hopper has overflowed! ", this.mnStorageUsed, "/", this.mnMaxStorage, ".", Environment.StackTrace, "Last Item was ", this.mLastItemAdded }));
         }
         this.mnStorageFree = this.mnMaxStorage - this.mnStorageUsed;
         //LogValue("***NEW*** mnStorageFree ", this.mnStorageFree);
@@ -2100,7 +2526,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
         }
         if (this.mnStorageUsed > this.mnMaxStorage)
         {
-            Debug.LogError(string.Concat(new object[] { "Storage hopper has overflowed! ", this.mnStorageUsed, "/", this.mnMaxStorage, ".", Environment.StackTrace, "Last Item was ", this.mLastItemAdded }));
+            LogError_AW(string.Concat(new object[] { "Storage hopper has overflowed! ", this.mnStorageUsed, "/", this.mnMaxStorage, ".", Environment.StackTrace, "Last Item was ", this.mLastItemAdded }));
         }
         this.mnStorageFree = this.mnMaxStorage - this.mnStorageUsed;
         //LogValue("***NEW*** mnStorageFree ", this.mnStorageFree);
@@ -2136,7 +2562,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
     {
         if (!CubeHelper.IsOre(lType))
         {
-            // Debug.LogError("This is only for Ores and other things that we DO NOT CARE ABOUT THE VALUE OF");
+            // LogError_AW("This is only for Ores and other things that we DO NOT CARE ABOUT THE VALUE OF");
         }
         int num = 0;
         for (int i = 0; i < this.mnMaxStorage; i++)
@@ -2190,11 +2616,15 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
 
     private bool AttemptToSpoilOrganicItem(int i)
     {
-        if ((this.maItemInventory[i] != null) && (((this.maItemInventory[i].mnItemID >= 0xfa0) && (this.maItemInventory[i].mnItemID <= 0xfaa)) && ((this.maItemInventory[i].mnItemID % 2) == 1)))
+        if (this.maItemInventory[i] == null)
+        {
+            return false;
+        }
+        if (this.maItemInventory[i].mnItemID >= 4000 && this.maItemInventory[i].mnItemID <= 4010 && this.maItemInventory[i].mnItemID % 2 == 1)
         {
             this.mrSpoilTimer = 30f;
             this.DecrementInventorySlot(i);
-            ItemBase lItemToAdd = ItemManager.SpawnItem(0x1004);
+            ItemBase lItemToAdd = ItemManager.SpawnItem(4100);
             this.AddItem(lItemToAdd);
             return true;
         }
@@ -2311,7 +2741,8 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
     }
 
     //******************** HANDLE OUTPUT **********************
-
+    //IS THIS NEEDED? WHAT HAPPENS IF I REMOVE IT?
+    //TODO: TEST THIS
     private void GetManufacturingPlantOutput(ManufacturingPlant plant)
     {
         if (plant.mOutputHopper != null)
@@ -2340,8 +2771,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
 
     public override int GetVersion()
     {
-
-        return 1;
+        return 3;
     }
 
     //******************** ITEM INTERACTIONS **********************
@@ -2405,107 +2835,325 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
 
     //******************** UPDATE ********************
 
-    private void UpdatePoweredHopper()
-    {
-
-    }
-
     private void UpdateSpoilage()
     {
-        this.mrSpoilTimer = 30f;
+        this.mrSpoilTimer -= LowFrequencyThread.mrPreviousUpdateTimeStep;
+        if (this.mrSpoilTimer <= 0f)
+        {
+            for (int i = 0; i < this.mnMaxStorage; i++)
+            {
+                if (this.AttemptToSpoilOrganicItem(i))
+                {
+                    this.mrSpoilTimer = 30f;
+                    return;
+                }
+            }
+            this.mrSpoilTimer = 30f;
+        }
     }
 
     //******************** READ/WRITE ********************
 
     public override void Read(BinaryReader reader, int entityVersion)
     {
-        int index = -1;
-        for (int i = 0; i < this.mnMaxStorage; i++)
+        #region Entity Version 1
+        if (entityVersion == 1)
         {
-            this.maStorage[i] = reader.ReadUInt16();
-            if (this.maStorage[i] != 0)
+            bool oT = this.OT;
+            if (oT)
             {
-                index = i;
-            }
-        }
-        eHopperPermissions mPermissions = this.mPermissions;
-        this.mPermissions = (eHopperPermissions)reader.ReadInt32();
-        if (((NetworkManager.mbClientRunning && (FloatingCombatTextManager.instance != null)) && (this.mbLinkedToGO && (this.mPermissions != mPermissions))) && (base.mDistanceToPlayer < 32f))
-        {
-            FloatingCombatTextManager.instance.QueueText(base.mnX, base.mnY + 1L, base.mnZ, 1f, this.mPermissions.ToString(), Color.cyan, 1.5f).mrStartRadiusRand = 0.25f;
-        }
-        this.mbHooverOn = reader.ReadBoolean();
-        reader.ReadByte();
-        reader.ReadByte();
-        reader.ReadByte();
-        reader.ReadInt32();
-        this.mrCurrentPower = reader.ReadSingle();
-        this.mrCurrentTemperature = reader.ReadSingle();
-        if (this.mrCurrentTemperature > 1000f)
-        {
-            this.mrCurrentTemperature = 1000f;
-        }
-        if (this.mrCurrentTemperature < -1000f)
-        {
-            this.mrCurrentTemperature = -1000f;
-        }
-        if (float.IsNaN(this.mrCurrentTemperature))
-        {
-            this.mrCurrentTemperature = 0f;
-        }
-        if (float.IsInfinity(this.mrCurrentTemperature))
-        {
-            this.mrCurrentTemperature = 0f;
-        }
-        reader.ReadInt32();
-        reader.ReadInt32();
-        reader.ReadInt32();
-        this.CountFreeSlots();
-        if (entityVersion != 0)
-        {
-            int num3 = -1;
-            for (int j = 0; j < this.mnMaxStorage; j++)
-            {
-                this.maItemInventory[j] = ItemFile.DeserialiseItem(reader);
-                if (this.maItemInventory[j] != null)
+                this.ExemplarItemID = reader.ReadInt32();
+                this.ExemplarString = reader.ReadString();
+                this.ExemplarBlockID = reader.ReadUInt16();
+                this.ExemplarBlockValue = reader.ReadUInt16();
+                bool flag = this.ExemplarItemID != -1 || this.ExemplarBlockID > 0;
+                if (flag)
                 {
-                    num3 = j;
+                    this.ExemplarSet = true;
                 }
             }
-            this.CountFreeSlots();
-            if (num3 >= 0)
+            int num = -1;
+            for (int i = 0; i < this.mnMaxStorage; i++)
             {
-                ItemBase item = this.maItemInventory[num3];
-                if (WorldScript.mbHasPlayer)
+                this.maStorage[i] = reader.ReadUInt16();
+                bool flag2 = this.maStorage[i] > 0;
+                if (flag2)
                 {
-                    if ((WorldScript.mLocalPlayer.mResearch != null) && WorldScript.mLocalPlayer.mResearch.IsKnown(item))
+                    num = i;
+                }
+            }
+            eHopperPermissions eHopperPermissions = this.mPermissions;
+            this.mPermissions = (eHopperPermissions)reader.ReadInt32();
+            bool flag3 = NetworkManager.mbClientRunning && FloatingCombatTextManager.instance != null && this.mbLinkedToGO && this.mPermissions != eHopperPermissions && this.mDistanceToPlayer < 32f;
+            if (flag3)
+            {
+                FloatingCombatTextManager.instance.QueueText(this.mnX, this.mnY + 1L, this.mnZ, 1f, this.mPermissions.ToString(), Color.cyan, 1.5f, (float)64).mrStartRadiusRand = 0.25f;
+            }
+            this.mbHooverOn = reader.ReadBoolean();
+            this.DebugMode = reader.ReadBoolean();
+            this.FeedHiveMind = reader.ReadBoolean();
+            this.FeedTicker = (int)reader.ReadByte();
+            reader.ReadInt32();
+            reader.ReadSingle();
+            reader.ReadSingle();
+            this.ItemsDeleted = reader.ReadInt32();
+            this.HopperNumber = reader.ReadInt32();
+            this.SetHopperNumIfHigher(this.HopperNumber);
+            reader.ReadInt32();
+            this.ReadStringComplete = "HooverOn: " + this.PrintBoolean(this.mbHooverOn);
+            this.ReadStringComplete = this.ReadStringComplete + "\nDebugMode: " + this.PrintBoolean(this.DebugMode);
+            this.ReadStringComplete = this.ReadStringComplete + "\nItems Deleted: " + this.ItemsDeleted;
+            this.ReadStringComplete = this.ReadStringComplete + "\nHopper Number: " + this.HopperNumber;
+            this.CountFreeSlots();
+            bool flag4 = entityVersion != 0;
+            if (flag4)
+            {
+                int num2 = -1;
+                for (int j = 0; j < this.mnMaxStorage; j++)
+                {
+                    this.maItemInventory[j] = ItemFile.DeserialiseItem(reader);
+                    bool flag5 = this.maItemInventory[j] != null;
+                    if (flag5)
                     {
-                        this.mLastItemAdded = ItemManager.GetItemName(item);
+                        num2 = j;
+                    }
+                }
+                this.CountFreeSlots();
+                bool flag6 = num2 >= 0;
+                if (flag6)
+                {
+                    ItemBase item = this.maItemInventory[num2];
+                    bool mbHasPlayer = WorldScript.mbHasPlayer;
+                    if (mbHasPlayer)
+                    {
+                        bool flag7 = WorldScript.mLocalPlayer.mResearch != null && WorldScript.mLocalPlayer.mResearch.IsKnown(item);
+                        if (flag7)
+                        {
+                            this.mLastItemAdded = ItemManager.GetItemName(item);
+                        }
+                        else
+                        {
+                            this.mLastItemAdded = "Unknown Material";
+                        }
+                    }
+                }
+                else
+                {
+                    bool flag8 = num >= 0;
+                    if (flag8)
+                    {
+                        bool flag9 = WorldScript.mLocalPlayer == null || WorldScript.mLocalPlayer.mResearch == null || WorldScript.mLocalPlayer.mResearch.IsKnown(this.maStorage[num], 0);
+                        if (flag9)
+                        {
+                            this.mLastItemAdded = global::TerrainData.GetNameForValue(this.maStorage[num], 0);
+                        }
+                        else
+                        {
+                            this.mLastItemAdded = "Unknown Material";
+                        }
+                    }
+                }
+                this.mbForceHoloUpdate = true;
+                this.mbForceTextUpdate = true;
+            }
+        }
+        #endregion
+        #region Entity Version 2
+
+        if (entityVersion == 2)
+        {
+            if (this.OT)
+            {
+                this.ExemplarItemID = reader.ReadInt32();               //1
+                this.ExemplarString = reader.ReadString();              //2
+                this.ExemplarBlockID = reader.ReadUInt16();             //3
+                this.ExemplarBlockValue = reader.ReadUInt16();          //4
+                if (this.ExemplarItemID != -1 || this.ExemplarBlockID != 0)
+                {
+                    this.ExemplarSet = true;
+                }
+            }
+            int index = -1;
+            for (int i = 0; i < this.mnMaxStorage; i++)
+            {
+                this.maStorage[i] = reader.ReadUInt16();
+                if (this.maStorage[i] != 0)
+                {
+                    index = i;
+                }
+            }
+            eHopperPermissions mPermissions = this.mPermissions;
+            this.mPermissions = (eHopperPermissions)reader.ReadInt32();
+            if (((NetworkManager.mbClientRunning && (FloatingCombatTextManager.instance != null)) && (this.mbLinkedToGO && (this.mPermissions != mPermissions))) && (base.mDistanceToPlayer < 32f))
+            {
+                FloatingCombatTextManager.instance.QueueText(base.mnX, base.mnY + 1L, base.mnZ, 1f, this.mPermissions.ToString(), Color.cyan, 1.5f).mrStartRadiusRand = 0.25f;
+            }
+            this.mbHooverOn = reader.ReadBoolean();
+            this.DebugMode = reader.ReadBoolean(); //Will remember if debug mode was enabled. (this allows for testing machine with debugmode on load) :D
+            this.FeedHiveMind = reader.ReadBoolean();
+            this.FeedTicker = reader.ReadInt32();
+            reader.ReadSingle();//NOT IN USE
+            reader.ReadSingle(); //OLD POWER SINGLE
+            reader.ReadSingle(); //OLD TEMP SINGLE
+            if (this.CubeValue == 0)
+            {
+                this.ItemsDeleted = reader.ReadInt32(); //ONLY USED FOR VOID HOPPER
+            }
+            this.HopperNumber = reader.ReadInt32(); //IMPORTANT FOR DEBUGGING - SEE WRITE
+            SetHopperNumIfHigher(this.HopperNumber); //Will make sure that 2 hoppers dont have the same number. 
+            reader.ReadInt32();//NOT IN USE
+            this.ReadStringComplete = "HooverOn: " + PrintBoolean(this.mbHooverOn);
+            this.ReadStringComplete = this.ReadStringComplete + "\n" + "DebugMode: " + PrintBoolean(this.DebugMode);
+            this.ReadStringComplete = this.ReadStringComplete + "\n" + "Items Deleted: " + this.ItemsDeleted;
+            this.ReadStringComplete = this.ReadStringComplete + "\n" + "Hopper Number: " + this.HopperNumber;
+            this.CountFreeSlots();
+            if (entityVersion != 0)
+            {
+                int num3 = -1;
+                for (int j = 0; j < this.mnMaxStorage; j++)
+                {
+                    this.maItemInventory[j] = ItemFile.DeserialiseItem(reader);
+                    if (this.maItemInventory[j] != null)
+                    {
+                        num3 = j;
+                    }
+                }
+                this.CountFreeSlots();
+                if (num3 >= 0)
+                {
+                    ItemBase item = this.maItemInventory[num3];
+                    if (WorldScript.mbHasPlayer)
+                    {
+                        if ((WorldScript.mLocalPlayer.mResearch != null) && WorldScript.mLocalPlayer.mResearch.IsKnown(item))
+                        {
+                            this.mLastItemAdded = ItemManager.GetItemName(item);
+                        }
+                        else
+                        {
+                            this.mLastItemAdded = "Unknown Material";
+                        }
+                    }
+                }
+                else if (index >= 0)
+                {
+                    if (((WorldScript.mLocalPlayer == null) || (WorldScript.mLocalPlayer.mResearch == null)) || WorldScript.mLocalPlayer.mResearch.IsKnown(this.maStorage[index], 0))
+                    {
+                        this.mLastItemAdded = TerrainData.GetNameForValue(this.maStorage[index], 0);
                     }
                     else
                     {
                         this.mLastItemAdded = "Unknown Material";
                     }
                 }
+                this.mbForceHoloUpdate = true;
+                this.mbForceTextUpdate = true;
             }
-            else if (index >= 0)
-            {
-                if (((WorldScript.mLocalPlayer == null) || (WorldScript.mLocalPlayer.mResearch == null)) || WorldScript.mLocalPlayer.mResearch.IsKnown(this.maStorage[index], 0))
-                {
-                    this.mLastItemAdded = TerrainData.GetNameForValue(this.maStorage[index], 0);
-                }
-                else
-                {
-                    this.mLastItemAdded = "Unknown Material";
-                }
-            }
-            this.mbForceHoloUpdate = true;
-            this.mbForceTextUpdate = true;
         }
+        #endregion
+        #region Entity Version 3
+
+        if (entityVersion == 3)
+        {
+            if (this.OT)
+            {
+                this.ExemplarItemID = reader.ReadInt32();               //1
+                this.ExemplarString = reader.ReadString();              //2
+                this.ExemplarBlockID = reader.ReadUInt16();             //3
+                this.ExemplarBlockValue = reader.ReadUInt16();          //4
+                if (this.ExemplarItemID != -1 || this.ExemplarBlockID != 0)
+                {
+                    this.ExemplarSet = true;
+                }
+            }
+            int index = -1;
+            for (int i = 0; i < this.mnMaxStorage; i++)
+            {
+                this.maStorage[i] = reader.ReadUInt16();
+                if (this.maStorage[i] != 0)
+                {
+                    index = i;
+                }
+            }
+            eHopperPermissions mPermissions = this.mPermissions;
+            this.mPermissions = (eHopperPermissions)reader.ReadInt32();
+            if (((NetworkManager.mbClientRunning && (FloatingCombatTextManager.instance != null)) && (this.mbLinkedToGO && (this.mPermissions != mPermissions))) && (base.mDistanceToPlayer < 32f))
+            {
+                FloatingCombatTextManager.instance.QueueText(base.mnX, base.mnY + 1L, base.mnZ, 1f, this.mPermissions.ToString(), Color.cyan, 1.5f).mrStartRadiusRand = 0.25f;
+            }
+            this.mbHooverOn = reader.ReadBoolean();
+            this.DebugMode = reader.ReadBoolean(); //Will remember if debug mode was enabled. (this allows for testing machine with debugmode on load) :D
+            this.FeedHiveMind = reader.ReadBoolean();
+            this.FeedTicker = reader.ReadInt32();
+            this.ShareContent = reader.ReadBoolean();
+            reader.ReadSingle();//NOT IN USE
+            reader.ReadSingle(); //OLD POWER SINGLE
+            reader.ReadSingle(); //OLD TEMP SINGLE
+            if (this.CubeValue == 0)
+            {
+                this.ItemsDeleted = reader.ReadInt32(); //ONLY USED FOR VOID HOPPER
+            }
+            this.HopperNumber = reader.ReadInt32(); //IMPORTANT FOR DEBUGGING - SEE WRITE
+            SetHopperNumIfHigher(this.HopperNumber); //Will make sure that 2 hoppers dont have the same number. 
+            reader.ReadInt32();//NOT IN USE
+            this.ReadStringComplete = "HooverOn: " + PrintBoolean(this.mbHooverOn);
+            this.ReadStringComplete = this.ReadStringComplete + "\n" + "DebugMode: " + PrintBoolean(this.DebugMode);
+            this.ReadStringComplete = this.ReadStringComplete + "\n" + "Items Deleted: " + this.ItemsDeleted;
+            this.ReadStringComplete = this.ReadStringComplete + "\n" + "Hopper Number: " + this.HopperNumber;
+            this.CountFreeSlots();
+            if (entityVersion != 0)
+            {
+                int num3 = -1;
+                for (int j = 0; j < this.mnMaxStorage; j++)
+                {
+                    this.maItemInventory[j] = ItemFile.DeserialiseItem(reader);
+                    if (this.maItemInventory[j] != null)
+                    {
+                        num3 = j;
+                    }
+                }
+                this.CountFreeSlots();
+                if (num3 >= 0)
+                {
+                    ItemBase item = this.maItemInventory[num3];
+                    if (WorldScript.mbHasPlayer)
+                    {
+                        if ((WorldScript.mLocalPlayer.mResearch != null) && WorldScript.mLocalPlayer.mResearch.IsKnown(item))
+                        {
+                            this.mLastItemAdded = ItemManager.GetItemName(item);
+                        }
+                        else
+                        {
+                            this.mLastItemAdded = "Unknown Material";
+                        }
+                    }
+                }
+                else if (index >= 0)
+                {
+                    if (((WorldScript.mLocalPlayer == null) || (WorldScript.mLocalPlayer.mResearch == null)) || WorldScript.mLocalPlayer.mResearch.IsKnown(this.maStorage[index], 0))
+                    {
+                        this.mLastItemAdded = TerrainData.GetNameForValue(this.maStorage[index], 0);
+                    }
+                    else
+                    {
+                        this.mLastItemAdded = "Unknown Material";
+                    }
+                }
+                this.mbForceHoloUpdate = true;
+                this.mbForceTextUpdate = true;
+            }
+        }
+        #endregion
     }
 
     public override void Write(BinaryWriter writer)
     {
+        if (this.OT)
+        {
+            writer.Write(this.ExemplarItemID);                      //1
+            writer.Write(this.ExemplarString);                      //2
+            writer.Write(this.ExemplarBlockID);                     //3
+            writer.Write(this.ExemplarBlockValue);                  //4
+        }
         for (int i = 0; i < this.mnMaxStorage; i++)
         {
             writer.Write(this.maStorage[i]);
@@ -2513,15 +3161,25 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
         writer.Write((int)this.mPermissions);
         writer.Write(this.mbHooverOn);
         int num2 = 0;
-        writer.Write((byte)0);
-        writer.Write((byte)0);
-        writer.Write((byte)0);
-        writer.Write(this.mnMaxStorage);
-        writer.Write(this.mrCurrentPower);
-        writer.Write(this.mrCurrentTemperature);
+        writer.Write(this.GetDebugMode()); //This is used to make the game remember if debugmode was enabled - See Read
+        writer.Write(this.FeedHiveMind);//This is a toggle Option!
+        writer.Write(this.FeedTicker);
+        writer.Write(this.ShareContent);
         writer.Write(num2);
-        writer.Write(num2);
-        writer.Write(num2);
+        writer.Write(num2);//OLD POWER SINGLE -- NOT IN USE
+        writer.Write(num2);//OLD TEMP SINGLE -- NOT IN USE
+                           //TODO: Needs Testing
+        if (this.CubeValue == 0)
+        {
+            writer.Write(this.ItemsDeleted); //MOSTLY ONLY USED FOR VOID HOPPER
+        }
+        writer.Write(this.HopperNumber);//HOPPER NUMBER, IMPORTANT FOR DEBUGGING!
+        writer.Write(num2);//NOT IN USE
+        this.LatestWriteComplete = "Permissions: " + this.mPermissions.ToString();
+        this.LatestWriteComplete = this.LatestWriteComplete + "Hoover Mode: " + PrintBoolean(this.mbHooverOn);
+        this.LatestWriteComplete = this.LatestWriteComplete + "Debug Mode: " + PrintBoolean(this.GetDebugMode());
+        this.LatestWriteComplete = this.LatestWriteComplete + "Items Deleted: " + this.ItemsDeleted;
+        this.LatestWriteComplete = this.LatestWriteComplete + "Hopper Number: " + this.HopperNumber;
         for (int j = 0; j < this.mnMaxStorage; j++)
         {
             ItemFile.SerialiseItem(this.maItemInventory[j], writer);
@@ -2635,12 +3293,48 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
 
     public bool InventoryExtractionPermitted
     {
-        get { return true; }
+        get { return true; } //THIS SHOULD ALWAYS BE TRUR UNLESS THE HOPPER IS FULL, THAT IS UP TO THE ENTITY TO CHECK
     }
 
     public int CountCubes(ushort cube, ushort value)
     {
         return CountHowManyOfType(cube, value);
+    }
+
+    public int CountItems(InventoryExtractionOptions options)
+    {
+        // Use the full extract function to count using all provided options.
+        ItemBase returnedItem;
+        ushort returnedCubeType;
+        ushort returnedCubeValue;
+        int returnedAmount;
+
+        if (!TryExtract(options.RequestType, options.ExemplarItemID, options.ExemplarBlockID, options.ExemplarBlockValue, options.InvertExemplar,
+            options.MinimumAmount, options.MaximumAmount, options.KnownItemsOnly,
+            true, false, false, out returnedItem, out returnedCubeType, out returnedCubeValue, out returnedAmount))
+        {
+            // Failed to extract anything
+            return 0;
+        }
+
+        return returnedAmount;
+    }
+
+    public int CountItems(int itemId)
+    {
+        return CountHowManyOfItem(itemId);
+    }
+
+    public int CountItems(int itemId, ushort cube, ushort value)
+    {
+        if (itemId >= 0)
+        {
+            return CountHowManyOfItem(itemId);
+        }
+        else
+        {
+            return CountHowManyOfType(cube, value);
+        }
     }
 
     public int TotalCapacity
@@ -3022,7 +3716,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
                 }
                 else
                 {
-                    Debug.LogError("Non-stack matched item was not removed from the hopper inventory during extract?");
+                    LogError_AW("Non-stack matched item was not removed from the hopper inventory during extract?");
                     returnedItem = itemBase;
                     returnedCubeType = 0;
                     returnedCubeValue = 0;
@@ -3057,26 +3751,40 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
         return false;
     }
     /// <summary>
-	/// Attempts to deliver the specified item or cube from the source entity to the consumer
-	/// of this interface. If the delivery is successful <c>true</c> will be returned.
-	/// </summary>
-	/// <returns><c>true</c>, if delivery of item was successful, <c>false</c> otherwise.</returns>
-	/// <param name="sourceEntity">Source entity.</param>
-	/// <param name="item">Item.</param>
-	/// <param name="cubeType">Cube type.</param>
-	/// <param name="cubeValue">Cube value.</param>
-	/// <param name="sendImmediateNetworkUpdate">Sends an immediate network update.</param>
-	public bool TryDeliverItem(StorageUserInterface sourceEntity, ItemBase item, ushort cubeType, ushort cubeValue, bool sendImmediateNetworkUpdate)
+    /// Attempts to deliver the specified item or cube from the source entity to the consumer
+    /// of this interface. If the delivery is successful <c>true</c> will be returned.
+    /// </summary>
+    /// <returns><c>true</c>, if delivery of item was successful, <c>false</c> otherwise.</returns>
+    /// <param name="sourceEntity">Source entity.</param>
+    /// <param name="item">Item.</param>
+    /// <param name="cubeType">Cube type.</param>
+    /// <param name="cubeValue">Cube value.</param>
+    /// <param name="sendImmediateNetworkUpdate">Sends an immediate network update.</param>
+    public bool TryDeliverItem(StorageUserInterface sourceEntity, ItemBase item, ushort cubeType, ushort cubeValue, bool sendImmediateNetworkUpdate)
     {
-        Debug.Log("testing");
+
+        //this.LogError("TryDeliverItem was called by " + sourceEntity);
         if (mnStorageFree > 0)
         {
             if (item != null)
             {
+                //This should keep hoppers from overflowing!
+                if (ItemManager.GetCurrentStackSize(item) > mnStorageFree)
+                {
+                    return false;
+                }
+                if (!CheckExemplar(item))
+                {
+                    return false;
+                }
                 AddItem(item);
             }
             else
             {
+                if (!CheckExemplar(cubeType, cubeValue))
+                {
+                    return false;
+                }
                 AddCube(cubeType, cubeValue);
             }
 
@@ -3145,7 +3853,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
         ushort returnedCubeValue;
         int returnedAmount;
 
-        bool success = TryExtract(eHopperRequestType.eAny, -1, cube, value, false, amount, amount, false, false, false, false, out returnedItem, out returnedCubeType, out returnedCubeValue, out returnedAmount);
+        TryExtract(eHopperRequestType.eAny, -1, cube, value, false, amount, amount, false, false, false, false, out returnedItem, out returnedCubeType, out returnedCubeValue, out returnedAmount);
 
         return returnedAmount;
     }
@@ -3201,18 +3909,25 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
         ushort returnedCubeType;
         ushort returnedCubeValue;
         int returnedAmount;
-
         return TryExtract(eHopperRequestType.eAny, -1, 0, 0, false, amount, amount, false, false, false, true, out item, out returnedCubeType, out returnedCubeValue, out returnedAmount);
     }
 
     public bool TryInsert(InventoryInsertionOptions options, ref InventoryInsertionResults results)
     {
+        LogError("This is called![1]");
         // Check we have not run out of space.
         if (mnStorageFree <= 0)
         {
             return false;
         }
-
+        //IF FALSE 
+        //IF its a OT hopper, its allways true
+        //IF its true exemplar its allways true
+        //IF its both its false
+        if (CheckExemplar(options.Item) == false)
+        {
+            return false;
+        }
         if (options.Item != null)
         {
             // Get the number of items represented by this item.
@@ -3287,32 +4002,32 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
                 return true;
             }
         }
-
-        //		if (maAttachedHoppers[0].mnStorageFree <=0)
-        //		{
-        //			Debug.LogError("Derp, how did a Quarry pick a full hopper to empty into?");
-        //		}
-        //		else
-        //		{
-        //			maAttachedHoppers[0].AddCube(mCarryCube,mCarryValue);
-        //		}
     }
 
     public bool TryInsert(StorageUserInterface sourceEntity, ItemBase item)
     {
+        if (CheckExemplar(item) == false)
+        {
+            return false;
+        }
         return AddItem(item);
     }
 
     public bool TryInsert(StorageUserInterface sourceEntity, ushort cube, ushort value, int amount)
     {
+        if (mnStorageFree < amount)
+        {
+            return false;
+        }
+        if (CheckExemplar(cube, value) == false)
+        {
+            return false;
+        }
         if (amount == 1)
         {
             AddCube(cube, value);
             return true;
         }
-
-        if (mnStorageFree < amount)
-            return false;
 
         int remaining = amount;
 
@@ -3330,6 +4045,10 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
         int currentStackSize = ItemManager.GetCurrentStackSize(item);
         int num = currentStackSize;
         if (this.mnStorageFree == 0)
+        {
+            return 0;
+        }
+        if (CheckExemplar(item) == false)
         {
             return 0;
         }
@@ -3353,7 +4072,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
         }
         if (updateSourceItem)
         {
-            if (currentStackSize > this.mnStorageFree)
+            if (currentStackSize > num)
             {
                 ItemManager.SetItemCount(item, currentStackSize - num);
             }
@@ -3367,6 +4086,20 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
 
     public int TryPartialInsert(StorageUserInterface sourceEntity, ushort cube, ushort value, int amount)
     {
+        if (CheckExemplar(cube, value) == false)
+        {
+            if (!ExemplarSet)
+            {
+                ItemBase CubeEx = new ItemCubeStack(cube, value, 1);
+                SetExemplar(CubeEx);
+            }
+            else
+            {
+                return 0;
+            }
+
+        }
+
         int remaining = amount;
 
         while (remaining > 0 && mnStorageFree > 0)
@@ -3376,44 +4109,6 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
         }
 
         return amount - remaining;
-    }
-
-    //******************** RETURN INVENTORY INFORMATION ********************
-
-    public int CountItems(InventoryExtractionOptions options)
-    {
-        // Use the full extract function to count using all provided options.
-        ItemBase returnedItem;
-        ushort returnedCubeType;
-        ushort returnedCubeValue;
-        int returnedAmount;
-
-        if (!TryExtract(options.RequestType, options.ExemplarItemID, options.ExemplarBlockID, options.ExemplarBlockValue, options.InvertExemplar,
-            options.MinimumAmount, options.MaximumAmount, options.KnownItemsOnly,
-            true, false, false, out returnedItem, out returnedCubeType, out returnedCubeValue, out returnedAmount))
-        {
-            // Failed to extract anything
-            return 0;
-        }
-
-        return returnedAmount;
-    }
-
-    public int CountItems(int itemId)
-    {
-        return CountHowManyOfItem(itemId);
-    }
-
-    public int CountItems(int itemId, ushort cube, ushort value)
-    {
-        if (itemId >= 0)
-        {
-            return CountHowManyOfItem(itemId);
-        }
-        else
-        {
-            return CountHowManyOfType(cube, value);
-        }
     }
 
     // ***************************************************************************************************************************************
@@ -3457,15 +4152,9 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
                 }
             }
         }
-
-
         FinaliseHopperChange();
-
         return amountToExtract - amountLeft;
     }
-    // ***************************************************************************************************************************************
-
-
     // ***************************************************************************************************************************************
     void FinaliseHopperChange()
     {
@@ -3479,15 +4168,6 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
     //******************** STORAGEUSERINTERFACE (NEW STORAGE API) ********************
     //********************************************************************************
     //******************** ENUM'S ********************
-    public enum ePermissions
-    {
-        AddAndRemove,
-        RemoveOnly,
-        AddOnly,
-        Locked,
-        eNumPermissions
-    }
-
     public enum eRequestType
     {
         eAny,

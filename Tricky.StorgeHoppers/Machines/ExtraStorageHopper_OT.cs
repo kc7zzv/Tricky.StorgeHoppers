@@ -1,5 +1,4 @@
-﻿using FortressCraft.Community;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -62,8 +61,7 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, ItemConsumerInterfa
     // More of my stuff
     private ushort CubeValue;
     private Color mCubeColor;
-    public int ItemsDeleted;
-
+	private int ItemsDeleted;
     private string HopperName;
 
     //One Type Stuff
@@ -120,62 +118,7 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, ItemConsumerInterfa
         this.CheckSegments = new Segment[6];
     }
 
-    //******************** OT Hopper Stuff ********************
-
-    public void SetExemplar(ItemBase lExemplar)
-    {
-        this.ExemplarString = ItemManager.GetItemName(lExemplar);
-        if (lExemplar.mnItemID != -1)
-        {
-            this.ExemplarItemID = lExemplar.mnItemID;
-            if (this.ExemplarItemID == 0)
-            {
-                Debug.LogError("Error, Exemplar attempted to be set, but no ItemID? " + ItemManager.GetItemName(lExemplar));
-            }
-            this.ExemplarBlockValue = 0;
-            this.ExemplarBlockID = 0;
-        }
-        else if (lExemplar.mType == ItemType.ItemCubeStack)
-        {
-            ushort CubeType;
-            ushort CubeValue;
-            TerrainData.GetCubeForName(this.ExemplarString, out CubeType, out CubeValue);
-            this.ExemplarBlockID = CubeType;
-            this.ExemplarBlockValue = CubeValue;
-            this.ExemplarItemID = -1;
-        }
-        else
-        {
-            Debug.LogWarning("Error, unable to set exemplars for type " + ItemManager.GetItemName(lExemplar));
-        }
-        this.ExemplarItemBase = lExemplar;
-        this.MarkDirtyDelayed();
-    }
-
-    public bool CheckExemplar(ItemBase lExemplar)
-    {
-        if (ItemManager.GetItemName(lExemplar) == this.ExemplarString)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-    public bool CheckExemplar(ushort CubeType, ushort CubeValue)
-    {
-        ItemBase lExemplar = new ItemCubeStack(CubeType, CubeValue, 1);
-        if (ItemManager.GetItemName(lExemplar) == this.ExemplarString)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
+    
 
     public override string GetPopupText()
     {
@@ -224,7 +167,7 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, ItemConsumerInterfa
                         amount = mnStorageFree;
                     }
                     ItemManager.SetItemCount(currentHotBarItemOrCubeAsItem, amount);
-                    if (!CheckExemplar(currentHotBarItemOrCubeAsItem))
+                    if (!this.CheckExemplar(currentHotBarItemOrCubeAsItem))
                     {
                         //lStr = lStr + "\nUnable to add " + currentHotBarItemOrCubeAsItem.GetDisplayString() + " because its not the correct type";
                     }
@@ -276,7 +219,7 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, ItemConsumerInterfa
 
                         if (this.mnStorageUsed == 0)
                         {
-                            SetExemplar(currentHotBarItemOrCubeAsItem);
+                            this.SetExemplar(currentHotBarItemOrCubeAsItem);
                             ExtraStorageHopperWindow_OT.SetNewExamplar(WorldScript.mLocalPlayer, selectedEntity, currentHotBarItemOrCubeAsItem);
                         }
                         else
@@ -2439,18 +2382,18 @@ public class ExtraStorageHoppers_OT : global::MachineEntity, ItemConsumerInterfa
         Variables.LogValue("*Reader* this.ExemplarBlockID", this.ExemplarBlockID);
         this.ExemplarBlockValue = reader.ReadUInt16();          //4
         Variables.LogValue("*Reader* this.ExemplarBlockValue", this.ExemplarBlockValue);
-        int StorageUsed = reader.ReadInt32();                   //5
-        this.mPermissions = (eHopperPermissions)reader.ReadUInt16();  //6
-        this.mbHooverOn = reader.ReadBoolean();                 //7
-        this.mrCurrentPower = reader.ReadSingle();              //8
-        this.mrCurrentTemperature = reader.ReadSingle();        //9
-        reader.ReadByte();                                      //10
-        reader.ReadByte();                                      //11       
-        reader.ReadByte();                                      //12        
-        reader.ReadInt32();                                     //13
-        reader.ReadInt32();                                     //14       
-        reader.ReadInt32();                                     //15
-        reader.ReadInt32();                                     //16
+        int StorageUsed = reader.ReadInt32();                           //5
+        this.mPermissions = (eHopperPermissions)reader.ReadUInt16();    //6
+        this.mbHooverOn = reader.ReadBoolean();                         //7
+        this.mrCurrentPower = reader.ReadSingle();                      //8
+        this.mrCurrentTemperature = reader.ReadSingle();                //9
+        reader.ReadByte();                                              //10
+        reader.ReadByte();                                              //11       
+        reader.ReadByte();                                              //12        
+        reader.ReadInt32();                                             //13
+        reader.ReadInt32();                                             //14       
+        reader.ReadInt32();                                             //15
+        reader.ReadInt32();                                             //16
         stopwatch.Stop();
         Variables.Log("[" + this.HopperName + "] Reading done in " + stopwatch.ElapsedMilliseconds + ", readerLocation = " + reader.BaseStream.Position);
 
