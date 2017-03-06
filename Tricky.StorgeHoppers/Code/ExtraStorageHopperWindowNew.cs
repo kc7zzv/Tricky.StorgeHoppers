@@ -2,32 +2,20 @@
 using System.Reflection;
 using UnityEngine;
 using System.Collections.Generic;
-using FortressCraft.Community.Utilities;
 
 public class ExtraStorageHopperWindowNew : BaseMachineWindow
 {
     public const string InterfaceName = "ExtraStorageHopperWindowNew";
-
     public const string InterfaceSetAddRemove = "SetAddRemove";
-
     public const string InterfaceSetAddOnly = "SetAddOnly";
-
     public const string InterfaceSetRemoveOnly = "SetRemoveOnly";
-
     public const string InterfaceSetLocked = "SetLocked";
-
     public const string InterfaceToggleHoover = "ToggleHoover";
-
     public const string InterfaceTakeItems = "TakeItems";
-
     public const string InterfaceStoreItems = "StoreItems";
-
     public static bool dirty;
-
     public static bool networkRedraw;
-
     public int SlotCount;
-
     public override void SpawnWindow(SegmentEntity targetEntity)
     {
         ExtraStorageHoppers hopper = targetEntity as ExtraStorageHoppers;
@@ -37,8 +25,6 @@ public class ExtraStorageHopperWindowNew : BaseMachineWindow
             UIManager.RemoveUIRules("Machine");
             return;
         }
-        UIUtil.UIdelay = 0;
-        UIUtil.UILock = true;
         float x = GenericMachinePanelScript.instance.Label_Holder.transform.position.x;
         float y = GenericMachinePanelScript.instance.Label_Holder.transform.position.y;
         GenericMachinePanelScript.instance.Label_Holder.transform.position = new Vector3(x, y, 69.3f);
@@ -54,14 +40,16 @@ public class ExtraStorageHopperWindowNew : BaseMachineWindow
         int num4 = 60;
         int num5 = 60;
         int num6 = 40;
-        int num7 = num2 + num3 + 50 + num6;
-        this.manager.AddTabButton("AddRemoveButton", "Add and Remove", true, 40, num);
-        this.manager.AddTabButton("LockedButton", "Locked", true, 160, num);
-        this.manager.AddTabButton("AddOnlyButton", "Add Only", true, 40, num + num2);
-        this.manager.AddTabButton("RemoveOnlyButton", "Remove Only", true, 160, num + num2);
-        this.manager.AddButton("ToggleHoover", "Toggle Vacuum", 30, num + num2 + num3);
-        this.manager.AddBigLabel("HooverStatus", "Vacuum: Off", Color.white, 180, num + num2 + num3);
-        this.manager.AddBigLabel("UsedStorage", "8888/8888", Color.white, 10, num + num2 + num3 + num6);
+        int num7 = num2 + num3 + 50 + num6 + 50;
+        this.manager.AddTabButton("AddRemoveButton", "Add and Remove", true, 40, 0);
+        this.manager.AddTabButton("LockedButton", "Locked", true, 160, 0);
+        this.manager.AddTabButton("AddOnlyButton", "Add Only", true, 40, 40);
+        this.manager.AddTabButton("RemoveOnlyButton", "Remove Only", true, 160, 40);
+        this.manager.AddButton("ToggleHoover", "Toggle Vacuum", 30, 90);
+        this.manager.AddBigLabel("HooverStatus", "Vacuum: Off", Color.white, 180, 90);
+        this.manager.AddButton("ToggleShare", "Toggle Share", 30, 140);
+        this.manager.AddBigLabel("ShareStatus", "Share Mode: Off", Color.white, 180, 140);
+        this.manager.AddBigLabel("UsedStorage", "8888/8888", Color.white, 10, 190);
         this.SlotCount = this.CountUnique(hopper);
         for (int i = 0; i <= this.SlotCount; i++)
         {
@@ -153,6 +141,14 @@ public class ExtraStorageHopperWindowNew : BaseMachineWindow
         {
             this.manager.UpdateLabel("HooverStatus", "Vacuum: Off", Color.white);
         }
+        if (hopper.ShareContent)
+        {
+            this.manager.UpdateLabel("ShareStatus", "Share Mode: On", Color.white);
+        }
+        else
+        {
+            this.manager.UpdateLabel("ShareStatus", "Share Mode: Off", Color.white);
+        }
         this.manager.UpdateLabel("UsedStorage", string.Concat(new object[]
         {
             "Used ",
@@ -211,6 +207,13 @@ public class ExtraStorageHopperWindowNew : BaseMachineWindow
             ExtraStorageHopperWindowNew.ToggleHoover(WorldScript.mLocalPlayer, hopper);
             return true;
         }
+        if (name == "ToggleShare")
+        {
+            UIManager.ForceNGUIUpdate = 0.1f;
+            AudioHUDManager.instance.HUDIn();
+            ExtraStorageHopperWindowNew.ToggleShare(WorldScript.mLocalPlayer, hopper);
+            return true;
+        }
         if (name.Contains("ItemSlot"))
         {
             int num = -1;
@@ -259,7 +262,7 @@ public class ExtraStorageHopperWindowNew : BaseMachineWindow
 
     public override void HandleItemDrag(string name, ItemBase draggedItem, DragAndDropManager.DragRemoveItem dragDelegate, SegmentEntity targetEntity)
     {
-        
+
 
         ExtraStorageHoppers hopper = targetEntity as ExtraStorageHoppers;
         ItemBase itemForSlot = this.GetItemForSlot(hopper, name);
@@ -267,6 +270,10 @@ public class ExtraStorageHopperWindowNew : BaseMachineWindow
         if (itemForSlot != null)
         {
             flag = (draggedItem.mnItemID == itemForSlot.mnItemID);
+        }
+        if (hopper.OT && hopper.IsEmpty() && !hopper.ExemplarSet)
+        {
+            hopper.SetExemplar(draggedItem);
         }
         if (name == "ItemSlot" + this.SlotCount && flag && hopper.IsNotFull() && hopper.CheckExemplar(draggedItem))
         {
@@ -408,6 +415,17 @@ public class ExtraStorageHopperWindowNew : BaseMachineWindow
         if (!WorldScript.mbIsServer)
         {
             NetworkManager.instance.SendInterfaceCommand("ExtraStorageHopperWindowNew", "ToggleHoover", null, null, hopper, 0f);
+        }
+        return true;
+    }
+
+    public static bool ToggleShare(Player player, ExtraStorageHoppers hopper)
+    {
+        hopper.ToggleShareContent();
+        ExtraStorageHopperWindowNew.dirty = true;
+        if (!WorldScript.mbIsServer)
+        {
+            NetworkManager.instance.SendInterfaceCommand("ExtraStorageHopperWindowNew", "ToggleShare", null, null, hopper, 0f);
         }
         return true;
     }
@@ -606,6 +624,9 @@ public class ExtraStorageHopperWindowNew : BaseMachineWindow
                     break;
                 case "ToggleHoover":
                     ExtraStorageHopperWindowNew.ToggleHoover(player, hopper);
+                    break;
+                case "ToggleShare":
+                    ExtraStorageHopperWindowNew.ToggleShare(player, hopper);
                     break;
                 case "TakeItems":
                     ExtraStorageHopperWindowNew.TakeItems(player, hopper, nic.itemContext);
