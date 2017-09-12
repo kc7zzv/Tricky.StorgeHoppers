@@ -675,45 +675,41 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
     {
         //-------------------------------------------------------------
         //HFCHECKER - CUSTOM EXTRASTORAGEHOPPERCODE, THIS IS WHAT MAKES MY HOPPERS FASTER... along other things :P 
-        long mnX1 = base.mnX;
+        long mnX1 = base.mnX-1L;
         long mnY1 = base.mnY;
         long mnZ1 = base.mnZ;
         int index2 = 0;
-        mnX1 -= 1L;
         HFChecker(index2, mnX1, mnY1, mnZ1);
-        mnX1 = base.mnX;
+
+        mnX1 = base.mnX+1L;
         mnY1 = base.mnY;
         mnZ1 = base.mnZ;
         index2 = 1;
-        mnX1 += 1L;
         HFChecker(index2, mnX1, mnY1, mnZ1);
+
         mnX1 = base.mnX;
-        mnY1 = base.mnY;
+        mnY1 = base.mnY-1L;
         mnZ1 = base.mnZ;
         index2 = 2;
-        mnY1 -= 1L;
         HFChecker(index2, mnX1, mnY1, mnZ1);
+
         mnX1 = base.mnX;
-        mnY1 = base.mnY;
+        mnY1 = base.mnY+1L;
         mnZ1 = base.mnZ;
         index2 = 3;
-        mnY1 += 1L;
         HFChecker(index2, mnX1, mnY1, mnZ1);
+
         mnX1 = base.mnX;
         mnY1 = base.mnY;
-        mnZ1 = base.mnZ;
+        mnZ1 = base.mnZ-1L;
         index2 = 4;
-        mnZ1 -= 1L;
         HFChecker(index2, mnX1, mnY1, mnZ1);
+
         mnX1 = base.mnX;
         mnY1 = base.mnY;
-        mnZ1 = base.mnZ;
+        mnZ1 = base.mnZ+1L;
         index2 = 5;
-        mnZ1 += 1L;
         HFChecker(index2, mnX1, mnY1, mnZ1);
-        mnX1 = base.mnX;
-        mnY1 = base.mnY;
-        mnZ1 = base.mnZ;
 
         //-------------------------------------------------------------
         mbAllowLogistics = true;
@@ -2447,50 +2443,6 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
             }
         }
         return num;
-    }
-
-    private int ReturnFreeSlots()
-    {
-        int mnStorageFree = this.mnStorageFree;
-        //LogValue("***OLD*** mnStorageFree", this.mnStorageFree);
-        this.mnStorageUsed = 0;
-        for (int i = 0; i < this.mnMaxStorage; i++)
-        {
-            if (this.maStorage[i] != 0)
-            {
-                this.mnStorageUsed++;
-            }
-        }
-        for (int j = 0; j < this.mnMaxStorage; j++)
-        {
-            if (this.maItemInventory[j] != null)
-            {
-                ItemBase base2 = this.maItemInventory[j];
-                if (base2.mType == ItemType.ItemStack)
-                {
-                    this.mnStorageUsed += (base2 as ItemStack).mnAmount;
-                }
-                else if (base2.mType == ItemType.ItemCubeStack)
-                {
-                    this.mnStorageUsed += (base2 as ItemCubeStack).mnAmount;
-                }
-                else
-                {
-                    this.mnStorageUsed++;
-                }
-            }
-        }
-        if (this.mnStorageUsed > this.mnMaxStorage)
-        {
-            LogError_AW(string.Concat(new object[] { "Storage hopper has overflowed! ", this.mnStorageUsed, "/", this.mnMaxStorage, ".", Environment.StackTrace, "Last Item was ", this.mLastItemAdded }));
-        }
-        this.mnStorageFree = this.mnMaxStorage - this.mnStorageUsed;
-        //LogValue("***NEW*** mnStorageFree ", this.mnStorageFree);
-        if (mnStorageFree != this.mnStorageFree)
-        {
-            this.mbForceTextUpdate = true;
-        }
-        return mnStorageFree;
     }
 
     private void CountFreeSlots()
