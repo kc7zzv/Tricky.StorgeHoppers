@@ -119,6 +119,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
                                   *11 = 2000 slot OT hopper
                                   *12 = Custom hopper
                                   */
+    private bool IsVoidHopper { get { return CubeValue == 0; } }
     public bool ShareContent = false;
     private Color mCubeColor; //What color the hoppers will have ingame (NOT ICON)
     private string HopperName; //This is used for the API
@@ -456,7 +457,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
             if (selectedEntity != null)
             {
 
-                if (this.CubeValue == 0)
+                if (IsVoidHopper)
                 {
                     VoidString = "Void Hopper\nItems Deleted: " + this.ItemsDeleted + "\nLast Item: " + selectedEntity.mLastItemAdded + "\nFeed Hive Mind (Q):" + PrintBoolean(selectedEntity.FeedHiveMind) + "\nDebugMode: " + GetDebugModeStr();
                 }
@@ -467,7 +468,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
                     lStr = lStr + "\nLast Item : " + selectedEntity.mLastItemAdded;
                 }
                 string str2 = lStr;
-                if (this.CubeValue != 0)
+                if (!IsVoidHopper)
                 {
                     object[] objArray1 = new object[] { str2, "\nUsed:", selectedEntity.mnStorageUsed, ". Free:", selectedEntity.mnStorageFree, "\n(E)Open Storage Interface" };
 
@@ -520,7 +521,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
                         amount = selectedEntity.mnStorageFree;
                     }
                     ItemManager.SetItemCount(currentHotBarItemOrCubeAsItem, amount);
-                    if (this.CubeValue == 0)
+                    if (IsVoidHopper)
                     {
                         if (amount != 0)
                         {
@@ -1348,7 +1349,7 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
         return this.CubeValue;
     }
 
-    public int GetCubeType(string key)
+    private static int GetCubeType(string key)
     {
         ModCubeMap cube = null;
         ModManager.mModMappings.CubesByKey.TryGetValue(key, out cube);
@@ -1627,8 +1628,8 @@ public class ExtraStorageHoppers : MachineEntity, ItemConsumerInterface, Storage
             return true;
         }
         this.CountFreeSlots();
-        //If its a Void Hopper (CubeValue = 0) and feed HiveMind is enabled, then this is what feeds the hivemind
-        if (this.GetCubeValue() == 0)
+        //If its a Void Hopper and feed HiveMind is enabled, then this is what feeds the hivemind
+        if (IsVoidHopper)
         {
             Variables.LogPlain("Void hopper got item!");
             Variables.LogValue("FeedHiveMind", this.FeedHiveMind);
