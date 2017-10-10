@@ -17,9 +17,13 @@ public static class Variables
     public static string Author = Path.GetFileName(Assembly.GetExecutingAssembly().Location).Split('.')[0].Split('_')[1];
     public static string ModVersion = FCEModPath_split[FCEModPath_length - 2];
     public static string LogFilePath = FCEModPath + "ModLog.log";
-    public static string PreString = "[" + ModName + "][V" + ModVersion + "][" + System.DateTime.Now.Hour + ":" + System.DateTime.Now.Minute + ":" + System.DateTime.Now.Second + "." + System.DateTime.Now.Millisecond + "]";
+    //public static string PreString = "[" + ModName + "][V" + ModVersion + "][" + System.DateTime.Now.Hour + ":" + System.DateTime.Now.Minute + ":" + System.DateTime.Now.Second + "." + System.DateTime.Now.Millisecond + "]";
     private static object locker = new object();
     public static int HopperNumber = 0;
+
+
+    private static StreamWriter writer;
+    
 
     public static void Start()
     {
@@ -31,7 +35,8 @@ public static class Variables
         {
             Directory.CreateDirectory(Variables.FCEModPath);
         }
-        DelteLogFile();
+        var file = new FileStream(LogFilePath, FileMode.Truncate, FileAccess.Write, FileShare.Read);
+        writer = new StreamWriter(file);
         PrintLine();
         LogPlain("[" + ModName + "] Loaded!");
         LogPlain("Mod created by " + Author + "!");
@@ -43,7 +48,7 @@ public static class Variables
 
     public static void Log(object debug)
     {
-        PreString = "[" + ModName + "][V" + ModVersion + "][" + System.DateTime.Now.Hour + ":" + System.DateTime.Now.Minute + ":" + System.DateTime.Now.Second + "." + System.DateTime.Now.Millisecond + "]";
+        string PreString = "[" + ModName + "][V" + ModVersion + "][" + System.DateTime.Now.Hour + ":" + System.DateTime.Now.Minute + ":" + System.DateTime.Now.Second + "." + System.DateTime.Now.Millisecond + "]";
         if (ModDebug)
         {
             debug = debug.ToString();
@@ -54,7 +59,7 @@ public static class Variables
     }
     public static void LogPlain(object debug)
     {
-        PreString = "[" + ModName + "][V" + ModVersion + "][" + System.DateTime.Now.Hour + ":" + System.DateTime.Now.Minute + ":" + System.DateTime.Now.Second + "." + System.DateTime.Now.Millisecond + "]";
+        string PreString = "[" + ModName + "][V" + ModVersion + "][" + System.DateTime.Now.Hour + ":" + System.DateTime.Now.Minute + ":" + System.DateTime.Now.Second + "." + System.DateTime.Now.Millisecond + "]";
         if (ModDebug)
         {
             string str = debug.ToString();
@@ -65,7 +70,7 @@ public static class Variables
 
     public static void LogError(object debug)
     {
-        PreString = "[" + ModName + "][V" + ModVersion + "][" + System.DateTime.Now.Hour + ":" + System.DateTime.Now.Minute + ":" + System.DateTime.Now.Second + "." + System.DateTime.Now.Millisecond + "]";
+        string PreString = "[" + ModName + "][V" + ModVersion + "][" + System.DateTime.Now.Hour + ":" + System.DateTime.Now.Minute + ":" + System.DateTime.Now.Second + "." + System.DateTime.Now.Millisecond + "]";
         if (ModDebug)
         {
             debug = debug.ToString();
@@ -77,7 +82,7 @@ public static class Variables
 
     public static void LogValue(object ValueText, object Value)
     {
-        PreString = "[" + ModName + "][V" + ModVersion + "][" + System.DateTime.Now.Hour + ":" + System.DateTime.Now.Minute + ":" + System.DateTime.Now.Second + "." + System.DateTime.Now.Millisecond + "]";
+        string PreString = "[" + ModName + "][V" + ModVersion + "][" + System.DateTime.Now.Hour + ":" + System.DateTime.Now.Minute + ":" + System.DateTime.Now.Second + "." + System.DateTime.Now.Millisecond + "]";
         if (ModDebug)
         {
             ValueText = ValueText.ToString();
@@ -94,21 +99,11 @@ public static class Variables
 
     public static void LogValue(object ValueText, object Value, bool Error)
     {
-        PreString = "[" + ModName + "][V" + ModVersion + "][" + System.DateTime.Now.Hour + ":" + System.DateTime.Now.Minute + ":" + System.DateTime.Now.Second + "." + System.DateTime.Now.Millisecond + "]";
+        string PreString = "[" + ModName + "][V" + ModVersion + "][" + System.DateTime.Now.Hour + ":" + System.DateTime.Now.Minute + ":" + System.DateTime.Now.Second + "." + System.DateTime.Now.Millisecond + "]";
         if (ModDebug)
-        {
-            ValueText = ValueText.ToString();
-            Value = Value.ToString();
-            string str = PreString + "***VALUE LOG***: " + ValueText + " = " + Value;
-            string str2 = PreString + "***VALUE LOG***: " + ValueText + " = " + Value;
-            if (Error)
-            {
-                WriteStringToFile(str);
-            }
-            else
-            {
-                WriteStringToFile(str2);
-            }
+        {            
+            string str = PreString + "***VALUE LOG***: " + ValueText.ToString() + " = " + Value.ToString();
+            WriteStringToFile(str);
         }
     }
 
@@ -118,34 +113,9 @@ public static class Variables
         {
             lock (locker)
             {
-                using (FileStream file = new FileStream(LogFilePath, FileMode.Append, FileAccess.Write))
-                using (StreamWriter writer = new StreamWriter(file))
-                {
-                    writer.WriteLine(ValueText);
-                }
-
-            }
-        }
-        catch (Exception)
-        {
-
-            throw;
-        }
-
-    }
-
-    public static void DelteLogFile()
-    {
-        try
-        {
-            if (File.Exists(LogFilePath))
-            {
-                File.Delete(LogFilePath);
-                File.Create(LogFilePath).Close();
-            }
-            else
-            {
-                File.Create(LogFilePath).Close();
+                var ts = System.DateTime.Now;
+                writer.WriteLine("["+ts.Hour+":"+ts.Minute+":"+ts.Second+"."+ts.Millisecond+"]"+ValueText);
+                writer.Flush();
             }
         }
         catch (Exception)
